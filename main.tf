@@ -8,7 +8,7 @@ module "this" {
   source                                = "terraform-aws-modules/s3-bucket/aws"
   version                               = "4.1.2"
   bucket                                = var.name != "" ? var.name : null
-  bucket_prefix                         = var.name_prefix != "" ? "${var.name_prefix}-${local.system_name_short}" : null
+  bucket_prefix                         = var.name_prefix != "" ? "${var.name_prefix}-${local.system_name_short}-" : null
   acl                                   = try(var.bucket_config.acl, "private")
   control_object_ownership              = try(var.bucket_config.control_object_ownership, true)
   object_ownership                      = try(var.bucket_config.object_ownership, "ObjectWriter")

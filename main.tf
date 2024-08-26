@@ -5,7 +5,7 @@
 #
 locals {
   clean_name  = var.name != "" ? var.name : (var.short_system_name == true ? "${var.name_prefix}-${local.system_name_short}" : "${var.name_prefix}-${local.system_name}")
-  bucket_name = var.random_bucket_suffix == false ? clean_name : "${clean_name}-${random_string.random.result}"
+  bucket_name = var.random_bucket_suffix == false ? local.clean_name : "${local.clean_name}-${random_string.random[0].result}"
 }
 
 resource "random_string" "random" {

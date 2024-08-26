@@ -16,6 +16,18 @@ variable "name_prefix" {
   default     = ""
 }
 
+variable "random_bucket_suffix" {
+  description = "Creates a unique bucket name with a random 8 character string appended to the end. Defaults to true, for clean names set to false"
+  type        = bool
+  default     = true
+}
+
+variable "short_system_name" {
+  description = "Force the use of the short system name local variable, defaults to false."
+  type        = bool
+  default     = false
+}
+
 variable "bucket_config" {
   description = "The configuration for the S3 bucket"
   type        = any

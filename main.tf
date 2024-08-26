@@ -3,12 +3,24 @@
 #            On GitHub: https://github.com/cloudopsworks
 #            Distributed Under Apache v2.0 License
 #
+locals {
+  clean_name  = var.name != "" ? var.name : (var.short_system_name == true ? "${var.name_prefix}-${local.system_name_short}" : "${var.name_prefix}-${local.system_name}")
+  bucket_name = var.random_bucket_suffix == false ? clean_name : "${clean_name}-${random_string.random.result}"
+}
+
+resource "random_string" "random" {
+  count   = var.random_bucket_suffix ? 1 : 0
+  length  = 8
+  special = false
+  lower   = true
+  upper   = false
+  numeric = true
+}
 
 module "this" {
   source                                = "terraform-aws-modules/s3-bucket/aws"
   version                               = "4.1.2"
-  bucket                                = var.name != "" ? var.name : null
-  bucket_prefix                         = var.name_prefix != "" ? "${var.name_prefix}-${local.system_name_short}-" : null
+  bucket                                = local.bucket_name
   acl                                   = try(var.bucket_config.acl, "private")
   control_object_ownership              = try(var.bucket_config.control_object_ownership, true)
   object_ownership                      = try(var.bucket_config.object_ownership, "ObjectWriter")

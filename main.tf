@@ -34,6 +34,7 @@ module "this" {
   ignore_public_acls                    = try(var.bucket_config.acls.ignore_public_acls, true)
   restrict_public_buckets               = try(var.bucket_config.acls.restrict_public_buckets, true)
   server_side_encryption_configuration  = try(var.bucket_config.server_side_encryption_configuration, {})
+  policy                                = try(var.bucket_config.policy, null)
   website                               = try(var.bucket_config.website, {})
   lifecycle_rule                        = try(var.bucket_config.lifecycle_rule, [])
   tags                                  = merge(try(var.bucket_config.tags, {}), local.all_tags)

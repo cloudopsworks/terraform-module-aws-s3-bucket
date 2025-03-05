@@ -1,4 +1,4 @@
-name: Terraform Transit Gateway Module
+name: Terraform S3 Bucket Module
 #logo: logo/logo.jpg
 
 license: "APACHE2"
@@ -8,20 +8,108 @@ copyrights:
     url: "https://cloudops.works"
     year: "2024"
 
-github_repo: cloudopsworks/terraform-module-aws-vpc-setup
+github_repo: cloudopsworks/terraform-module-aws-s3-bucket
 
 description: |-
-  VPC Module for setting up transit gateway with ResourceAccessMananger support.
+  This Terraform module creates and manages an Amazon S3 bucket with various configuration options. 
+  It allows you to specify the bucket name, name prefix, and whether to append a random suffix to the bucket name. 
+  Additionally, it provides options to configure the bucket settings through the `bucket_config` variable. 
+  The module outputs the bucket ID, ARN, regional domain name, hosted zone ID, region, website domain, and website endpoint. 
+  This module is designed to be flexible and easy to use, making it suitable for a wide range of use cases.
 
 # Introduction to the project
-#introduction: |-
-#  This is an introduction.
+introduction: |-
+  This module provides a robust and flexible solution for creating and managing Amazon S3 buckets using Terraform. 
+  It offers a variety of configuration options to customize the bucket according to your needs, including specifying the bucket name, adding a name prefix, 
+  and appending a random suffix for uniqueness. The module also supports detailed bucket configuration through the `bucket_config` variable, allowing you to 
+  tailor the bucket settings to your specific requirements. Outputs from the module include essential information such as the bucket ID, ARN, regional domain name, 
+  hosted zone ID, region, website domain, and website endpoint. Designed for ease of use and adaptability, this module is suitable for a wide range of use cases, 
+  from simple storage solutions to complex infrastructure setups.
 
 # How to use this project
-#usage: |-
+usage: |-
+  To use this Terraform module, follow the steps below:
 
+  1. **Add the module to your Terraform configuration:**
+     ```hcl
+     module "s3_bucket" {
+       source  = "cloudopsworks/terraform-module-aws-s3-bucket"
+       version = "x.y.z" # Replace with the desired version
+
+       # Required variables
+       name = "my-s3-bucket"
+
+       # Optional variables
+       name_prefix          = "my-prefix"
+       random_bucket_suffix = true
+       short_system_name    = false
+       bucket_config        = {
+         # Add your bucket configuration here
+       }
+     }
+     ```
+
+  2. **Initialize the Terraform configuration:**
+     ```sh
+     terraform init
+     ```
+
+  3. **Apply the Terraform configuration:**
+     ```sh
+     terraform apply
+     ```
+
+  4. **Outputs:**
+     After applying the configuration, you can access the following outputs:
+     - `bucket_id`: The ID of the S3 bucket.
+     - `bucket_arn`: The ARN of the S3 bucket.
+     - `bucket_regional_domain_name`: The regional domain name of the S3 bucket.
+     - `bucket_hosted_zone_id`: The hosted zone ID of the S3 bucket.
+     - `bucket_region`: The region of the S3 bucket.
+     - `bucket_website_domain`: The website domain of the S3 bucket.
+     - `bucket_website_endpoint`: The website endpoint of the S3 bucket.
 # Example usage
-#examples: |-
+examples: |-
+  ## Standalone usage
+  To use this module standalone, add the following to your Terraform configuration:
+
+  ```hcl
+  module "s3_bucket" {
+    source  = "cloudopsworks/terraform-module-aws-s3-bucket"
+    version = "x.y.z" # Replace with the desired version
+
+    # Required variables
+    name = "my-s3-bucket"
+
+    # Optional variables
+    name_prefix          = "my-prefix"
+    random_bucket_suffix = true
+    short_system_name    = false
+    bucket_config        = {
+      # Add your bucket configuration here
+    }
+  }
+  
+  ## Terragrunt usage
+  To use this module with Terragrunt, create a terragrunt.hcl file with the following content:
+  ```hcl
+  terraform {
+    source = "git::https://github.com/cloudopsworks/terraform-module-aws-s3-bucket.git?ref=x.y.z" # Replace with the desired version
+  }
+
+  inputs = {
+    # Required variables
+    name = "my-s3-bucket"
+
+    # Optional variables
+    name_prefix          = "my-prefix"
+    random_bucket_suffix = true
+    short_system_name    = false
+    bucket_config        = {
+      # Add your bucket configuration here
+    }
+  }
+  ```
 
 # How to get started quickly
 #quickstart: |-

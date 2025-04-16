@@ -19,7 +19,7 @@ resource "random_string" "random" {
 
 module "this" {
   source                                     = "terraform-aws-modules/s3-bucket/aws"
-  version                                    = "4.1.2"
+  version                                    = "~> 4.1"
   bucket                                     = local.bucket_name
   acl                                        = try(var.bucket_config.acl, "private")
   control_object_ownership                   = try(var.bucket_config.control_object_ownership, true)

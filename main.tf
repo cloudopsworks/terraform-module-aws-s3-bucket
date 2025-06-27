@@ -9,6 +9,12 @@
 locals {
   clean_name  = var.name != "" ? var.name : (var.short_system_name == true ? "${var.name_prefix}-${local.system_name_short}" : "${var.name_prefix}-${local.system_name}")
   bucket_name = var.random_bucket_suffix == false ? local.clean_name : "${local.clean_name}-${random_string.random[0].result}"
+  versioning = merge(
+    try(var.bucket_config.versioning_config, {}),
+    {
+      enabled = try(var.bucket_config.versioning, false)
+    }
+  )
 }
 
 resource "random_string" "random" {
@@ -32,7 +38,12 @@ module "this" {
   attach_lb_log_delivery_policy              = try(var.bucket_config.policies.lb_logs, false)
   attach_access_log_delivery_policy          = try(var.bucket_config.policies.access_logs, false)
   attach_deny_insecure_transport_policy      = try(var.bucket_config.policies.deny_insecure_transport, true)
-  attach_public_policy                       = try(var.bucket_config.policies.public, false)
+  attach_deny_incorrect_encryption_headers   = try(var.bucket_config.policies.deny_incorrect_encryption, false)
+  attach_deny_incorrect_kms_key_sse          = try(var.bucket_config.policies.deny_incorrect_kms_key, false)
+  attach_deny_ssec_encrypted_object_uploads  = try(var.bucket_config.policies.deny_ssec_encrypted_uploads, false)
+  attach_deny_unencrypted_object_uploads     = try(var.bucket_config.policies.deny_unencrypted_uploads, false)
+  attach_require_latest_tls_policy           = try(var.bucket_config.policies.require_latest_tls, true)
+  attach_public_policy                       = try(var.bucket_config.policies.attach_public, true)
   block_public_acls                          = try(var.bucket_config.acls.blocks_public, true)
   block_public_policy                        = try(var.bucket_config.acls.blocks_public_policy, true)
   ignore_public_acls                         = try(var.bucket_config.acls.ignore_public_acls, true)
@@ -44,11 +55,10 @@ module "this" {
   lifecycle_rule                             = try(var.bucket_config.lifecycle_rule, [])
   access_log_delivery_policy_source_accounts = try(var.bucket_config.policies.access_logs, false) ? [data.aws_caller_identity.current.account_id] : []
   access_log_delivery_policy_source_buckets  = try(var.bucket_config.policies.access_logs, false) ? ["arn:aws:s3:::${local.bucket_name}"] : []
+  transition_default_minimum_object_size     = try(var.bucket_config.transition_default_minimum_object_size, null)
+  versioning                                 = local.versioning
+  object_lock_enabled                        = try(var.bucket_config.object_lock.enabled, false)
+  object_lock_configuration                  = try(var.bucket_config.object_lock.configuration, {})
+  replication_configuration                  = try(var.bucket_config.replication, {})
   tags                                       = merge(try(var.bucket_config.tags, {}), local.all_tags)
-  versioning = merge(
-    try(var.bucket_config.versioning_config, {}),
-    {
-      enabled = try(var.bucket_config.versioning, false)
-    }
-  )
 }

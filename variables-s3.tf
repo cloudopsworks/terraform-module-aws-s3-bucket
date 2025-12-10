@@ -11,24 +11,28 @@ variable "name" {
   description = "The name of the S3 bucket"
   type        = string
   default     = ""
+  nullable    = false
 }
 
 variable "name_prefix" {
   description = "Creates a unique bucket name beginning with the specified prefix. Conflicts with name"
   type        = string
   default     = ""
+  nullable    = false
 }
 
 variable "random_bucket_suffix" {
   description = "Creates a unique bucket name with a random 8 character string appended to the end. Defaults to true, for clean names set to false"
   type        = bool
   default     = true
+  nullable    = false
 }
 
 variable "short_system_name" {
   description = "Force the use of the short system name local variable, defaults to false."
   type        = bool
   default     = false
+  nullable    = false
 }
 
 ## configurations for the S3 bucket - YAML format

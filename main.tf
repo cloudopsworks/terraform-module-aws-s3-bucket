@@ -6,6 +6,7 @@
 #       WebSite: https://cloudops.works
 #     Distributed Under Apache v2.0 License
 #
+
 locals {
   clean_name  = var.name != "" ? var.name : (var.short_system_name == true ? "${var.name_prefix}-${local.system_name_short}" : "${var.name_prefix}-${local.system_name}")
   bucket_name = var.random_bucket_suffix == false ? local.clean_name : "${local.clean_name}-${random_string.random[0].result}"
@@ -16,6 +17,8 @@ locals {
     }
   )
 }
+
+data "aws_caller_identity" "current" {}
 
 resource "random_string" "random" {
   count   = var.random_bucket_suffix ? 1 : 0
@@ -28,7 +31,7 @@ resource "random_string" "random" {
 
 module "this" {
   source                                     = "terraform-aws-modules/s3-bucket/aws"
-  version                                    = "~> 4.1"
+  version                                    = "~> 5.9"
   bucket                                     = local.bucket_name
   acl                                        = try(var.bucket_config.acl, "private")
   control_object_ownership                   = try(var.bucket_config.control_object_ownership, true)

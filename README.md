@@ -8,32 +8,27 @@
   -->
 [![README Header][readme_header_img]][readme_header_link]
 
-[![cloudopsworks][logo]](https://cloudops.works/)
+[![cloudopsworks][logo]](https://cloudopsworks.co/)
 
 # Terraform S3 Bucket Module
 
 
-This Terraform module creates and manages an Amazon S3 bucket with comprehensive configuration options including versioning, 
-encryption, lifecycle rules, website hosting, and various security policies. The module supports bucket naming with prefixes 
-and random suffixes, object lock configuration, replication settings, and extensive policy controls. It provides granular 
-control over public access, encryption requirements, TLS versions, and supports ELB/ALB log delivery configurations. 
-The module is built on top of the official AWS S3 bucket module and extends its functionality with additional features 
-and simplified configuration options.
+This Terraform module creates and manages an Amazon S3 bucket with comprehensive configuration options including versioning,
+encryption, lifecycle rules, website hosting, and various security policies. The module supports bucket naming with prefixes
+and random suffixes, object lock configuration, replication settings, and extensive policy controls. It provides granular
+control over public access, encryption requirements, TLS versions, and supports ELB/ALB, WAF, CloudTrail, and S3 Analytics
+log delivery configurations. The module is built on top of the official AWS S3 bucket module and extends its functionality
+with additional features and simplified configuration options.
 
 
 ---
 
 This project is part of our comprehensive approach towards DevOps Acceleration. 
 [<img align="right" title="Share via Email" width="24" height="24" src="https://docs.cloudops.works/images/ionicons/ios-mail.svg"/>][share_email]
-[<img align="right" title="Share on Google+" width="24" height="24" src="https://docs.cloudops.works/images/ionicons/logo-googleplus.svg" />][share_googleplus]
 [<img align="right" title="Share on Facebook" width="24" height="24" src="https://docs.cloudops.works/images/ionicons/logo-facebook.svg" />][share_facebook]
 [<img align="right" title="Share on Reddit" width="24" height="24" src="https://docs.cloudops.works/images/ionicons/logo-reddit.svg" />][share_reddit]
 [<img align="right" title="Share on LinkedIn" width="24" height="24" src="https://docs.cloudops.works/images/ionicons/logo-linkedin.svg" />][share_linkedin]
-[<img align="right" title="Share on Twitter" width="24" height="24" src="https://docs.cloudops.works/images/ionicons/logo-twitter.svg" />][share_twitter]
-
-
-[![Terraform Open Source Modules](https://docs.cloudops.works/images/terraform-open-source-modules.svg)][terraform_modules]
-
+[<img align="right" title="Share on X" width="24" height="24" src="https://docs.cloudops.works/images/ionicons/logo-twitter.svg" />][share_twitter]
 
 
 It's 100% Open Source and licensed under the [APACHE2](LICENSE).
@@ -66,8 +61,11 @@ This Terraform module provides a comprehensive solution for managing AWS S3 buck
   * Public access controls
   * Transport security enforcement
   * Encryption requirements
-  * Access logging
-  * Load balancer log delivery
+  * Access logging with configurable source accounts and buckets
+  * Load balancer (ELB/ALB) log delivery
+  * WAF log delivery
+  * CloudTrail log delivery
+  * S3 Analytics destination policy
 
 The module is designed to be used both standalone with Terraform and integrated with Terragrunt for enhanced configuration management.
 
@@ -78,287 +76,334 @@ The module is designed to be used both standalone with Terraform and integrated 
 Instead pin to the release tag (e.g. `?ref=vX.Y.Z`) of one of our [latest releases](https://github.com/cloudopsworks/terraform-module-aws-s3-bucket/releases).
 
 
-To use this Terraform module, follow the steps below:
+To use this Terraform module with Terragrunt, create a `terragrunt.hcl` file as follows:
 
-1. **Add the module to your Terraform configuration:**
-   ```hcl
-   module "s3_bucket" {
-     source  = "cloudopsworks/terraform-module-aws-s3-bucket"
-     version = "x.y.z" # Replace with the desired version
-
-     name                = "my-s3-bucket"
-     name_prefix        = "my-prefix"
-     random_bucket_suffix = true
-     short_system_name   = false
-
-     bucket_config = {
-       versioning = true
-       versioning_config = {
-         status = "Enabled"
-       }
-
-       server_side_encryption_configuration = {
-         rule = {
-           apply_server_side_encryption_by_default = {
-             sse_algorithm = "AES256"
-           }
-         }
-       }
-
-       policies = {
-         deny_insecure_transport = true
-         require_latest_tls = true
-         deny_unencrypted_uploads = true
-       }
-
-       lifecycle_rule = [
-         {
-           id      = "transition-to-ia"
-           enabled = true
-           transition = {
-             days          = 30
-             storage_class = "STANDARD_IA"
-           }
-         }
-       ]
-
-       object_lock = {
-         enabled = true
-         configuration = {
-           rule = {
-             default_retention = {
-               mode = "COMPLIANCE"
-               days = 90
-             }
-           }
-         }
-       }
-     }
-   }
-   ```
-
-2. **Initialize and apply:**
-   ```sh
-   terraform init
-   terraform apply
-   ```
-
-3. **Available Outputs:**
-   - `bucket_id`: The ID of the S3 bucket
-   - `bucket_arn`: The ARN of the S3 bucket
-   - `bucket_regional_domain_name`: The regional domain name
-   - `bucket_hosted_zone_id`: The hosted zone ID
-   - `bucket_region`: The bucket's region
-   - `bucket_website_domain`: Website domain (if configured)
-   - `bucket_website_endpoint`: Website endpoint (if configured)
-4. **Optional Configuration YAML reference:**
-   If you prefer to use a YAML configuration file, you can define your S3 bucket settings in a `bucket_config.yaml` file and reference it in your Terraform configuration. Here's an example:
-
-   ```yaml
-    bucket_config: 
-      acl: private | public-read | public-read-write | authenticated-read | log-delivery-write
-      control_object_ownership: true | false
-      object_ownership: ObjectWriter | BucketOwnerPreferred | BucketOwnerEnforced
-      force_destroy: true | false
-      policies:
-        elb_logs: true | false                   # (optional) defaults to false
-        lb_logs: true | false                    # (optional) defaults to false
-        access_logs: true | false                # (optional) defaults to false
-        deny_insecure_transport: true | false    # (optional) defaults to true
-        deny_incorrect_encryption: true | false  # (optional) defaults to false
-        deny_incorrect_kms_key: true | false     # (optional) defaults to false
-        deny_ssec_encrypted_uploads: true | false # (optional) defaults to false
-        deny_unencrypted_uploads: true | false   # (optional) defaults to false
-        require_latest_tls: true | false         # (optional) defaults to true
-        attach_public: true | false              # (optional) defaults to true
-      acls:
-        blocks_public: true | false              # (optional) defaults to true
-        blocks_public_policy: true | false       # (optional) defaults to true
-        ignore_public_acls: true | false         # (optional) defaults to true
-        restrict_public_buckets: true | false    # (optional) defaults to true
-      server_side_encryption_configuration: # (optional) defaults to {}
-        rule:
-          apply_server_side_encryption_by_default:
-            sse_algorithm: AES256 | aws:kms
-            kms_master_key_id: <KMS Key ARN> # (optional) only if sse_algorithm is aws:kms
-      policy: <JSON policy> # (optional) defaults to ""
-      website: # (optional) defaults to {}
-        index_document: index.html
-        error_document: error.html
-        redirect_all_requests_to: # (optional)
-          host_name: <host name>
-          protocol: <http | https>
-        routing_rules: # (optional) defaults to []
-          - condition: # (optional)
-              http_error_code_returned_equals: <error code>
-              key_prefix_equals: <prefix>
-            redirect:
-              host_name: <host name>
-              protocol: <http | https>
-              http_redirect_code: <redirect code> # (optional)
-              replace_key_prefix_with: <prefix> # (optional)
-              replace_key_with: <key> # (optional)
-      versioning: (optional) defaults to {}
-        enabled: true | false # (optional) defaults to false
-        mfa: <MFA KEY + code> # (optional)
-        status: true | false # (optional) defaults to null
-        mfa_delete: true | false # (optional) defaults to false
-      lifecycle_rule: # (optional) defaults to []
-        - id: <rule ID> # (optional)
-          enabled: true | false # (optional) defaults to true
-          status: true | false # (optional) defaults to true
-          abort_incomplete_multipart_upload_days: <days> # (optional)
-          expiration: # (optional)
-            date: <date> # (optional)
-            days: <days> # (optional)
-            expired_object_delete_marker: true | false # (optional) defaults to false
-          transition: # (optional)
-            - date: <date> # (optional)
-              days: <days> # (optional)
-              storage_class: GLACIER | DEEP_ARCHIVE | INTELLIGENT_TIERING | ONEZONE_IA | STANDARD_IA | STANDARD # (optional)
-          noncurrent_version_expiration: # (optional)
-            days: <days> # (optional)
-            newer_noncurrent_versions: <number> # (optional)
-          noncurrent_version_transition: # (optional)
-            - days: <days> # (optional)
-              newer_noncurrent_versions: <number> # (optional)
-              storage_class: GLACIER | DEEP_ARCHIVE | INTELLIGENT_TIERING | ONEZONE_IA | STANDARD_IA | STANDARD # (optional)
-          filter: # (optional)
-            prefix: <prefix> # (optional)
-            object_size_greater_than: <size> # (optional)
-            object_size_less_than: <size> # (optional)
-            tags: # (optional) defaults to {}
-              key: value # (optional) additional tags can be added here
-      transition_default_minimum_object_size: <size> # (optional) defaults to null
-      object_lock: # (optional) defaults to {}
-        enabled: true | false # (optional) defaults to false
-        configuration: # (optional) defaults to {}
-          rule:
-            default_retention: # (optional)
-              mode: COMPLIANCE | GOVERNANCE # (optional)
-              days: <days> # (optional)
-              years: <years> # (optional)
-      replication: # (optional) defaults to {}
-        role: <IAM role ARN> # (required)
-        rules: # (required)
-          - id: <rule ID> # (required)
-            status: true | false # (required)
-            delete_marker_replication: true | false # (optional) defaults to null
-            destination: # (required)
-              bucket: <destination bucket ARN> # (required)
-              storage_class: GLACIER | DEEP_ARCHIVE | INTELLIGENT_TIERING | ONEZONE_IA | STANDARD_IA | STANDARD # (optional)
-              account: <destination account ID> # (optional)
-              access_control_translation: # (optional)
-                owner: BucketOwner # (optional) defaults to BucketOwner
-              encryption_configuration: # (optional)
-            replica_kms_key_id: <KMS Key ARN> # (optional) only if encryption is required
-              replication_time: # (optional)
-                status: true | false # (required) defaults to false
-                minutes: <minutes> # (required)
-              metrics: # (optional)
-                status: true | false # (required) defaults to false
-                minutes: <minutes> # (required)
-            source_selection_criteria: # (optional)
-              replica_modifications: # (optional)
-                enabled: true | false # (optional) defaults to false
-              sse_kms_encrypted_objects: # (optional)
-                enabled: true | false # (optional) defaults to false
-            filter: # (optional)
-              prefix: <prefix> # (optional)
-              tags: # (optional) defaults to {}
-                key: value # (optional) additional tags can be added here
-      tags: # (optional) defaults to {}
-        key: value # (optional) additional tags can be added here
-    ```
-
-## Quick Start
-
-Here's how to quickly get started with the S3 bucket module:
-
-1. Create a new Terraform configuration file (e.g., `main.tf`):
-   ```hcl
-   module "s3_bucket" {
-     source  = "cloudopsworks/terraform-module-aws-s3-bucket"
-     version = "1.0.0"  # Replace with latest version
-
-     name         = "my-quick-bucket"
-     name_prefix  = "demo"
-
-     bucket_config = {
-       versioning = true
-       server_side_encryption_configuration = {
-         rule = {
-           apply_server_side_encryption_by_default = {
-             sse_algorithm = "AES256"
-           }
-         }
-       }
-       policies = {
-         deny_insecure_transport = true
-         require_latest_tls = true
-       }
-     }
-   }
-   ```
-
-2. Initialize the working directory:
-   ```bash
-   terraform init
-   ```
-
-3. Review the changes:
-   ```bash
-   terraform plan
-   ```
-
-4. Apply the configuration:
-   ```bash
-   terraform apply
-   ```
-
-This will create a secure S3 bucket with versioning enabled, AES-256 encryption, and basic security policies.
-The bucket will be named using the prefix "demo" followed by "my-quick-bucket".
-
-
-## Examples
-
-## Standalone usage
-To use this module standalone, add the following to your Terraform configuration:
-
-```hcl
-module "s3_bucket" {
-  source  = "cloudopsworks/terraform-module-aws-s3-bucket"
-  version = "x.y.z" # Replace with the desired version
-
-  # Required variables
-  name = "my-s3-bucket"
-
-  # Optional variables
-  name_prefix          = "my-prefix"
-  random_bucket_suffix = true
-  short_system_name    = false
-  bucket_config        = {
-    # Add your bucket configuration here
-  }
-}
-
-## Terragrunt usage
-To use this module with Terragrunt, create a terragrunt.hcl file with the following content:
 ```hcl
 terraform {
   source = "git::https://github.com/cloudopsworks/terraform-module-aws-s3-bucket.git?ref=x.y.z" # Replace with the desired version
 }
 
 inputs = {
-  # Required variables
-  name = "my-s3-bucket"
-
-  # Optional variables
+  name                 = "my-s3-bucket"
   name_prefix          = "my-prefix"
   random_bucket_suffix = true
   short_system_name    = false
-  bucket_config        = {
-    # Add your bucket configuration here
+
+  bucket_config = {
+    versioning        = true
+    versioning_config = {
+      status = "Enabled"
+    }
+
+    server_side_encryption_configuration = {
+      rule = {
+        apply_server_side_encryption_by_default = {
+          sse_algorithm = "AES256"
+        }
+      }
+    }
+
+    policies = {
+      deny_insecure_transport = true
+      require_latest_tls      = true
+      deny_unencrypted_uploads = true
+    }
+
+    lifecycle_rule = [
+      {
+        id      = "transition-to-ia"
+        enabled = true
+        transition = {
+          days          = 30
+          storage_class = "STANDARD_IA"
+        }
+      }
+    ]
+
+    object_lock = {
+      enabled = true
+      configuration = {
+        rule = {
+          default_retention = {
+            mode = "COMPLIANCE"
+            days = 90
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**Available Outputs:**
+
+| Output | Description |
+|--------|-------------|
+| `bucket_id` | The ID (name) of the S3 bucket |
+| `bucket_arn` | The ARN of the S3 bucket |
+| `bucket_regional_domain_name` | The regional domain name of the bucket |
+| `bucket_hosted_zone_id` | The Route 53 hosted zone ID for the bucket |
+| `bucket_region` | The AWS region the bucket resides in |
+| `bucket_website_domain` | Website domain name (when website hosting is configured) |
+| `bucket_website_endpoint` | Website endpoint URL (when website hosting is configured) |
+
+**Full `bucket_config` YAML reference:**
+
+```yaml
+bucket_config:
+  acl: private | public-read | public-read-write | authenticated-read | log-delivery-write
+  control_object_ownership: true | false
+  object_ownership: ObjectWriter | BucketOwnerPreferred | BucketOwnerEnforced
+  force_destroy: true | false
+  policies:
+    elb_logs: true | false                     # (optional) defaults to false
+    lb_logs: true | false                      # (optional) defaults to false
+    access_logs: true | false                  # (optional) defaults to false
+    access_logs_accounts: []                   # (optional) additional AWS account IDs for access log delivery
+    access_logs_buckets: []                    # (optional) additional source bucket ARNs for access log delivery
+    deny_insecure_transport: true | false      # (optional) defaults to true
+    deny_incorrect_encryption: true | false    # (optional) defaults to false
+    deny_incorrect_kms_key: true | false       # (optional) defaults to false
+    deny_ssec_encrypted_uploads: true | false  # (optional) defaults to false
+    deny_unencrypted_uploads: true | false     # (optional) defaults to false
+    waf_logs: true | false                     # (optional) defaults to false
+    cloudtrail_logs: true | false              # (optional) defaults to false
+    analytics_destination: true | false        # (optional) defaults to false
+    require_latest_tls: true | false           # (optional) defaults to true
+    attach_public: true | false                # (optional) defaults to true
+  acls:
+    blocks_public: true | false                # (optional) defaults to true
+    blocks_public_policy: true | false         # (optional) defaults to true
+    ignore_public_acls: true | false           # (optional) defaults to true
+    restrict_public_buckets: true | false      # (optional) defaults to true
+  server_side_encryption_configuration:        # (optional) defaults to {}
+    rule:
+      apply_server_side_encryption_by_default:
+        sse_algorithm: AES256 | aws:kms
+        kms_master_key_id: <KMS Key ARN>       # (optional) only when sse_algorithm is aws:kms
+  policy: <JSON policy>                        # (optional) defaults to ""; use {{bucket_name}} as placeholder
+  website:                                     # (optional) defaults to {}
+    index_document: index.html
+    error_document: error.html
+    redirect_all_requests_to:                  # (optional)
+      host_name: <host name>
+      protocol: http | https
+    routing_rules:                             # (optional) defaults to []
+      - condition:                             # (optional)
+          http_error_code_returned_equals: <error code>
+          key_prefix_equals: <prefix>
+        redirect:
+          host_name: <host name>
+          protocol: http | https
+          http_redirect_code: <redirect code>  # (optional)
+          replace_key_prefix_with: <prefix>    # (optional)
+          replace_key_with: <key>              # (optional)
+  versioning: true | false                     # (optional) defaults to false - enable/disable versioning
+  versioning_config:                           # (optional) defaults to {}
+    mfa: <MFA KEY + code>                      # (optional) MFA device ARN and token for MFA-delete
+    status: Enabled | Suspended                # (optional) overrides versioning enable state when set
+    mfa_delete: Enabled | Disabled             # (optional) defaults to Disabled
+  lifecycle_rule:                              # (optional) defaults to []
+    - id: <rule ID>                            # (optional)
+      enabled: true | false                    # (optional) defaults to true
+      status: true | false                     # (optional) defaults to true
+      abort_incomplete_multipart_upload_days: <days> # (optional)
+      expiration:                              # (optional)
+        date: <date>                           # (optional)
+        days: <days>                           # (optional)
+        expired_object_delete_marker: true | false # (optional) defaults to false
+      transition:                              # (optional)
+        - date: <date>                         # (optional)
+          days: <days>                         # (optional)
+          storage_class: GLACIER | DEEP_ARCHIVE | INTELLIGENT_TIERING | ONEZONE_IA | STANDARD_IA | STANDARD
+      noncurrent_version_expiration:           # (optional)
+        days: <days>                           # (optional)
+        newer_noncurrent_versions: <number>    # (optional)
+      noncurrent_version_transition:           # (optional)
+        - days: <days>                         # (optional)
+          newer_noncurrent_versions: <number>  # (optional)
+          storage_class: GLACIER | DEEP_ARCHIVE | INTELLIGENT_TIERING | ONEZONE_IA | STANDARD_IA | STANDARD
+      filter:                                  # (optional)
+        prefix: <prefix>                       # (optional)
+        object_size_greater_than: <size>       # (optional)
+        object_size_less_than: <size>          # (optional)
+        tags: {}                               # (optional)
+  transition_default_minimum_object_size: <size> # (optional) defaults to null
+  object_lock:                                 # (optional) defaults to {}
+    enabled: true | false                      # (optional) defaults to false
+    configuration:                             # (optional) defaults to {}
+      rule:
+        default_retention:                     # (optional)
+          mode: COMPLIANCE | GOVERNANCE
+          days: <days>                         # (optional)
+          years: <years>                       # (optional)
+  replication:                                 # (optional) defaults to {}
+    role: <IAM role ARN>                       # (required)
+    rules:                                     # (required)
+      - id: <rule ID>                          # (required)
+        status: true | false                   # (required)
+        delete_marker_replication: true | false # (optional) defaults to null
+        destination:                           # (required)
+          bucket: <destination bucket ARN>     # (required)
+          storage_class: GLACIER | DEEP_ARCHIVE | INTELLIGENT_TIERING | ONEZONE_IA | STANDARD_IA | STANDARD # (optional)
+          account: <destination account ID>    # (optional)
+          access_control_translation:          # (optional)
+            owner: BucketOwner
+          encryption_configuration:            # (optional)
+            replica_kms_key_id: <KMS Key ARN>  # (optional) only if encryption is required
+          replication_time:                    # (optional)
+            status: true | false               # (required)
+            minutes: <minutes>                 # (required)
+          metrics:                             # (optional)
+            status: true | false               # (required)
+            minutes: <minutes>                 # (required)
+        source_selection_criteria:             # (optional)
+          replica_modifications:               # (optional)
+            enabled: true | false
+          sse_kms_encrypted_objects:           # (optional)
+            enabled: true | false
+        filter:                                # (optional)
+          prefix: <prefix>                     # (optional)
+          tags: {}                             # (optional)
+  tags: {}                                     # (optional) additional tags
+```
+
+## Quick Start
+
+Here's how to quickly get started with the S3 bucket module using Terragrunt:
+
+1. Create a `terragrunt.hcl` file:
+   ```hcl
+   terraform {
+     source = "git::https://github.com/cloudopsworks/terraform-module-aws-s3-bucket.git?ref=x.y.z"
+   }
+
+   inputs = {
+     name        = "my-quick-bucket"
+     name_prefix = "demo"
+
+     bucket_config = {
+       versioning = true
+       server_side_encryption_configuration = {
+         rule = {
+           apply_server_side_encryption_by_default = {
+             sse_algorithm = "AES256"
+           }
+         }
+       }
+       policies = {
+         deny_insecure_transport = true
+         require_latest_tls      = true
+       }
+     }
+   }
+   ```
+
+2. Initialize and apply:
+   ```bash
+   terragrunt init
+   terragrunt apply
+   ```
+
+This will create a secure S3 bucket with versioning enabled, AES-256 encryption, and basic security policies.
+The bucket will be named using the prefix "demo" followed by "my-quick-bucket" and a random 8-character suffix.
+
+
+## Examples
+
+## Simple private bucket with encryption and TLS enforcement
+
+```hcl
+terraform {
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-s3-bucket.git?ref=x.y.z"
+}
+
+inputs = {
+  name                 = "app-data"
+  name_prefix          = "myorg"
+  random_bucket_suffix = true
+
+  bucket_config = {
+    server_side_encryption_configuration = {
+      rule = {
+        apply_server_side_encryption_by_default = {
+          sse_algorithm = "AES256"
+        }
+      }
+    }
+    policies = {
+      deny_insecure_transport  = true
+      require_latest_tls       = true
+      deny_unencrypted_uploads = true
+    }
+  }
+}
+```
+
+## Access log destination bucket with WAF and CloudTrail support
+
+```hcl
+terraform {
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-s3-bucket.git?ref=x.y.z"
+}
+
+inputs = {
+  name                 = "log-archive"
+  name_prefix          = "myorg"
+  random_bucket_suffix = false
+
+  bucket_config = {
+    acl                      = "log-delivery-write"
+    control_object_ownership = true
+    object_ownership         = "BucketOwnerPreferred"
+    policies = {
+      access_logs          = true
+      waf_logs             = true
+      cloudtrail_logs      = true
+      deny_insecure_transport = true
+      require_latest_tls   = true
+    }
+    versioning = true
+    lifecycle_rule = [
+      {
+        id      = "expire-logs"
+        enabled = true
+        expiration = {
+          days = 365
+        }
+      }
+    ]
+  }
+}
+```
+
+## Versioned bucket with cross-region replication
+
+```hcl
+terraform {
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-s3-bucket.git?ref=x.y.z"
+}
+
+inputs = {
+  name                 = "critical-data"
+  name_prefix          = "myorg"
+  random_bucket_suffix = true
+
+  bucket_config = {
+    versioning = true
+    replication = {
+      role = "arn:aws:iam::123456789012:role/s3-replication-role"
+      rules = [
+        {
+          id     = "replicate-all"
+          status = true
+          destination = {
+            bucket        = "arn:aws:s3:::myorg-critical-data-replica"
+            storage_class = "STANDARD_IA"
+          }
+        }
+      ]
+    }
   }
 }
 ```
@@ -372,6 +417,11 @@ Available targets:
   help                                Help screen
   help/all                            Display help for all targets
   help/short                          This help short screen
+  init/aws                            Initialize the project for a specific cloud provider: AWS
+  init/azurerm                        Initialize the project for a specific cloud provider: Azure RM
+  init/gcp                            Initialize the project for a specific cloud provider: GCP
+  init/github                         Initialize the project for a specific cloud provider: Github Provider
+  init/mongodb                        Initialize the project for a specific cloud provider: MongoDB Atlas Provider
   lint                                Lint terraform/opentofu code
   tag                                 Tag the current version
 
@@ -381,22 +431,22 @@ Available targets:
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 5.83 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.4 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | ~> 3.5 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 5.94.1 |
-| <a name="provider_random"></a> [random](#provider\_random) | 3.7.1 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.37.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | 3.8.1 |
 
 ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
 | <a name="module_tags"></a> [tags](#module\_tags) | cloudopsworks/tags/local | 1.0.9 |
-| <a name="module_this"></a> [this](#module\_this) | terraform-aws-modules/s3-bucket/aws | ~> 4.1 |
+| <a name="module_this"></a> [this](#module\_this) | terraform-aws-modules/s3-bucket/aws | ~> 5.9 |
 
 ## Resources
 
@@ -440,10 +490,9 @@ Available targets:
 
 File a GitHub [issue](https://github.com/cloudopsworks/terraform-module-aws-s3-bucket/issues), send us an [email][email] or join our [Slack Community][slack].
 
-[![README Commercial Support][readme_commercial_support_img]][readme_commercial_support_link]
 
 ## DevOps Tools
-
+[]()
 ## Slack Community
 
 
@@ -464,7 +513,7 @@ Please use the [issue tracker](https://github.com/cloudopsworks/terraform-module
 
 ## Copyrights
 
-Copyright © 2024-2025 [Cloud Ops Works LLC](https://cloudops.works)
+Copyright © 2024-2026 [Cloud Ops Works LLC](https://cloudops.works)
 
 
 
@@ -521,32 +570,31 @@ This project is maintained by [Cloud Ops Works LLC][website].
 [![README Footer][readme_footer_img]][readme_footer_link]
 [![Beacon][beacon]][website]
 
-  [logo]: https://cloudops.works/logo-300x69.svg
-  [docs]: https://cowk.io/docs?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=docs
-  [website]: https://cowk.io/homepage?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=website
-  [github]: https://cowk.io/github?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=github
-  [jobs]: https://cowk.io/jobs?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=jobs
-  [hire]: https://cowk.io/hire?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=hire
-  [slack]: https://cowk.io/slack?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=slack
-  [linkedin]: https://cowk.io/linkedin?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=linkedin
-  [twitter]: https://cowk.io/twitter?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=twitter
-  [testimonial]: https://cowk.io/leave-testimonial?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=testimonial
-  [office_hours]: https://cloudops.works/office-hours?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=office_hours
-  [newsletter]: https://cowk.io/newsletter?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=newsletter
-  [email]: https://cowk.io/email?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=email
-  [commercial_support]: https://cowk.io/commercial-support?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=commercial_support
-  [we_love_open_source]: https://cowk.io/we-love-open-source?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=we_love_open_source
-  [terraform_modules]: https://cowk.io/terraform-modules?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=terraform_modules
-  [readme_header_img]: https://cloudops.works/readme/header/img
-  [readme_header_link]: https://cloudops.works/readme/header/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=readme_header_link
-  [readme_footer_img]: https://cloudops.works/readme/footer/img
-  [readme_footer_link]: https://cloudops.works/readme/footer/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=readme_footer_link
-  [readme_commercial_support_img]: https://cloudops.works/readme/commercial-support/img
-  [readme_commercial_support_link]: https://cloudops.works/readme/commercial-support/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=readme_commercial_support_link
-  [share_twitter]: https://twitter.com/intent/tweet/?text=Terraform+S3+Bucket+Module&url=https://github.com/cloudopsworks/terraform-module-aws-s3-bucket
+  [logo]: https://cloudopsworks.co/images/main-logo.png
+  [docs]: https://cloudopsworks.co/resources?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=docs
+  [website]: https://cloudopsworks.co?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=website
+  [github]: https://cloudopsworks.co/github?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=github
+  [jobs]: https://cloudopsworks.co/jobs?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=jobs
+  [hire]: https://cloudopsworks.co/hire?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=hire
+  [slack]: https://cloudopsworks.co/slack?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=slack
+  [linkedin]: https://cloudopsworks.co/linkedin?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=linkedin
+  [x]: https://cloudopsworks.co/x?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=x
+  [testimonial]: https://cloudopsworks.co/case-studies?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=testimonial
+  [office_hours]: https://cloudopsworks.co/office-hours?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=office_hours
+  [newsletter]: https://cloudopsworks.co/resources?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=newsletter
+  [email]: https://cloudopsworks.co/contact?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=email
+  [commercial_support]: https://cloudopsworks.co/services?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=commercial_support
+  [we_love_open_source]: https://cloudopsworks.co/open-source?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=we_love_open_source
+  [terraform_modules]: https://cloudopsworks.co/open-source?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=terraform_modules
+  [readme_header_img]: https://cloudopsworks.co/images/readme-header.png
+  [readme_header_link]: https://cloudopsworks.co/readme/header/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=readme_header_link
+  [readme_footer_img]: https://cloudopsworks.co/images/main-logo-footer.png
+  [readme_footer_link]: https://cloudopsworks.co/readme/footer/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=readme_footer_link
+  [readme_commercial_support_img]: https://cloudopsworks.co/readme/commercial-support/img
+  [readme_commercial_support_link]: https://cloudopsworks.co/readme/commercial-support/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-s3-bucket&utm_content=readme_commercial_support_link
+  [share_twitter]: https://x.com/intent/tweet/?text=Terraform+S3+Bucket+Module&url=https://github.com/cloudopsworks/terraform-module-aws-s3-bucket
   [share_linkedin]: https://www.linkedin.com/shareArticle?mini=true&title=Terraform+S3+Bucket+Module&url=https://github.com/cloudopsworks/terraform-module-aws-s3-bucket
   [share_reddit]: https://reddit.com/submit/?url=https://github.com/cloudopsworks/terraform-module-aws-s3-bucket
   [share_facebook]: https://facebook.com/sharer/sharer.php?u=https://github.com/cloudopsworks/terraform-module-aws-s3-bucket
-  [share_googleplus]: https://plus.google.com/share?url=https://github.com/cloudopsworks/terraform-module-aws-s3-bucket
   [share_email]: mailto:?subject=Terraform+S3+Bucket+Module&body=https://github.com/cloudopsworks/terraform-module-aws-s3-bucket
-  [beacon]: https://ga-beacon.cloudops.works/G-7XWMFVFXZT/cloudopsworks/terraform-module-aws-s3-bucket?pixel&cs=github&cm=readme&an=terraform-module-aws-s3-bucket
+  [beacon]: https://ga-beacon.cloudospworks.co/G-QMZVYYN2VN/cloudopsworks/terraform-module-aws-s3-bucket?pixel&cs=github&cm=readme&an=terraform-module-aws-s3-bucket

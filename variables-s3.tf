@@ -1,5 +1,5 @@
 ##
-# (c) 2021-2025
+# (c) 2021-2026
 #     Cloud Ops Works LLC - https://cloudops.works/
 #     Find us on:
 #       GitHub: https://github.com/cloudopsworks
@@ -52,6 +52,11 @@ variable "short_system_name" {
 #    deny_unencrypted_uploads: true | false   # (optional) defaults to false
 #    require_latest_tls: true | false         # (optional) defaults to true
 #    attach_public: true | false              # (optional) defaults to true
+#    waf_logs: true | false                   # (optional) defaults to false
+#    cloudtrail_logs: true | false            # (optional) defaults to false
+#    analytics_destination: true | false      # (optional) defaults to false
+#    access_logs_accounts: []                 # (optional) list of additional AWS account IDs for access log delivery policy
+#    access_logs_buckets: []                  # (optional) list of additional source bucket ARNs for access log delivery policy
 #  acls:
 #    blocks_public: true | false              # (optional) defaults to true
 #    blocks_public_policy: true | false       # (optional) defaults to true
@@ -79,11 +84,11 @@ variable "short_system_name" {
 #          http_redirect_code: <redirect code> # (optional)
 #          replace_key_prefix_with: <prefix> # (optional)
 #          replace_key_with: <key> # (optional)
-#  versioning: (optional) defaults to {}
-#    enabled: true | false # (optional) defaults to false
-#    mfa: <MFA KEY + code> # (optional)
-#    status: true | false # (optional) defaults to null
-#    mfa_delete: true | false # (optional) defaults to false
+#  versioning: true | false                   # (optional) defaults to false - enable/disable versioning
+#  versioning_config: # (optional) defaults to {}
+#    mfa: <MFA KEY + code>                    # (optional) MFA device ARN and token for MFA-delete
+#    status: Enabled | Suspended              # (optional) overrides versioning enable state when set
+#    mfa_delete: Enabled | Disabled           # (optional) defaults to Disabled
 #  lifecycle_rule: # (optional) defaults to []
 #    - id: <rule ID> # (optional)
 #      enabled: true | false # (optional) defaults to true

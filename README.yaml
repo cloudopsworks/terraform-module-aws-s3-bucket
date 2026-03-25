@@ -11,12 +11,12 @@ copyrights:
 github_repo: cloudopsworks/terraform-module-aws-s3-bucket
 
 description: |-
-  This Terraform module creates and manages an Amazon S3 bucket with comprehensive configuration options including versioning, 
-  encryption, lifecycle rules, website hosting, and various security policies. The module supports bucket naming with prefixes 
-  and random suffixes, object lock configuration, replication settings, and extensive policy controls. It provides granular 
-  control over public access, encryption requirements, TLS versions, and supports ELB/ALB log delivery configurations. 
-  The module is built on top of the official AWS S3 bucket module and extends its functionality with additional features 
-  and simplified configuration options.
+  This Terraform module creates and manages an Amazon S3 bucket with comprehensive configuration options including versioning,
+  encryption, lifecycle rules, website hosting, and various security policies. The module supports bucket naming with prefixes
+  and random suffixes, object lock configuration, replication settings, and extensive policy controls. It provides granular
+  control over public access, encryption requirements, TLS versions, and supports ELB/ALB, WAF, CloudTrail, and S3 Analytics
+  log delivery configurations. The module is built on top of the official AWS S3 bucket module and extends its functionality
+  with additional features and simplified configuration options.
 
 # Introduction to the project
 introduction: |-
@@ -33,260 +33,319 @@ introduction: |-
     * Public access controls
     * Transport security enforcement
     * Encryption requirements
-    * Access logging
-    * Load balancer log delivery
+    * Access logging with configurable source accounts and buckets
+    * Load balancer (ELB/ALB) log delivery
+    * WAF log delivery
+    * CloudTrail log delivery
+    * S3 Analytics destination policy
 
   The module is designed to be used both standalone with Terraform and integrated with Terragrunt for enhanced configuration management.
 
 # How to use this project
 usage: |-
-  To use this Terraform module, follow the steps below:
+  To use this Terraform module with Terragrunt, create a `terragrunt.hcl` file as follows:
 
-  1. **Add the module to your Terraform configuration:**
-     ```hcl
-     module "s3_bucket" {
-       source  = "cloudopsworks/terraform-module-aws-s3-bucket"
-       version = "x.y.z" # Replace with the desired version
-
-       name                = "my-s3-bucket"
-       name_prefix        = "my-prefix"
-       random_bucket_suffix = true
-       short_system_name   = false
-
-       bucket_config = {
-         versioning = true
-         versioning_config = {
-           status = "Enabled"
-         }
-
-         server_side_encryption_configuration = {
-           rule = {
-             apply_server_side_encryption_by_default = {
-               sse_algorithm = "AES256"
-             }
-           }
-         }
-
-         policies = {
-           deny_insecure_transport = true
-           require_latest_tls = true
-           deny_unencrypted_uploads = true
-         }
-
-         lifecycle_rule = [
-           {
-             id      = "transition-to-ia"
-             enabled = true
-             transition = {
-               days          = 30
-               storage_class = "STANDARD_IA"
-             }
-           }
-         ]
-
-         object_lock = {
-           enabled = true
-           configuration = {
-             rule = {
-               default_retention = {
-                 mode = "COMPLIANCE"
-                 days = 90
-               }
-             }
-           }
-         }
-       }
-     }
-     ```
-
-  2. **Initialize and apply:**
-     ```sh
-     terraform init
-     terraform apply
-     ```
-
-  3. **Available Outputs:**
-     - `bucket_id`: The ID of the S3 bucket
-     - `bucket_arn`: The ARN of the S3 bucket
-     - `bucket_regional_domain_name`: The regional domain name
-     - `bucket_hosted_zone_id`: The hosted zone ID
-     - `bucket_region`: The bucket's region
-     - `bucket_website_domain`: Website domain (if configured)
-     - `bucket_website_endpoint`: Website endpoint (if configured)
-  4. **Optional Configuration YAML reference:**
-     If you prefer to use a YAML configuration file, you can define your S3 bucket settings in a `bucket_config.yaml` file and reference it in your Terraform configuration. Here's an example:
-  
-     ```yaml
-      bucket_config: 
-        acl: private | public-read | public-read-write | authenticated-read | log-delivery-write
-        control_object_ownership: true | false
-        object_ownership: ObjectWriter | BucketOwnerPreferred | BucketOwnerEnforced
-        force_destroy: true | false
-        policies:
-          elb_logs: true | false                   # (optional) defaults to false
-          lb_logs: true | false                    # (optional) defaults to false
-          access_logs: true | false                # (optional) defaults to false
-          deny_insecure_transport: true | false    # (optional) defaults to true
-          deny_incorrect_encryption: true | false  # (optional) defaults to false
-          deny_incorrect_kms_key: true | false     # (optional) defaults to false
-          deny_ssec_encrypted_uploads: true | false # (optional) defaults to false
-          deny_unencrypted_uploads: true | false   # (optional) defaults to false
-          require_latest_tls: true | false         # (optional) defaults to true
-          attach_public: true | false              # (optional) defaults to true
-        acls:
-          blocks_public: true | false              # (optional) defaults to true
-          blocks_public_policy: true | false       # (optional) defaults to true
-          ignore_public_acls: true | false         # (optional) defaults to true
-          restrict_public_buckets: true | false    # (optional) defaults to true
-        server_side_encryption_configuration: # (optional) defaults to {}
-          rule:
-            apply_server_side_encryption_by_default:
-              sse_algorithm: AES256 | aws:kms
-              kms_master_key_id: <KMS Key ARN> # (optional) only if sse_algorithm is aws:kms
-        policy: <JSON policy> # (optional) defaults to ""
-        website: # (optional) defaults to {}
-          index_document: index.html
-          error_document: error.html
-          redirect_all_requests_to: # (optional)
-            host_name: <host name>
-            protocol: <http | https>
-          routing_rules: # (optional) defaults to []
-            - condition: # (optional)
-                http_error_code_returned_equals: <error code>
-                key_prefix_equals: <prefix>
-              redirect:
-                host_name: <host name>
-                protocol: <http | https>
-                http_redirect_code: <redirect code> # (optional)
-                replace_key_prefix_with: <prefix> # (optional)
-                replace_key_with: <key> # (optional)
-        versioning: (optional) defaults to {}
-          enabled: true | false # (optional) defaults to false
-          mfa: <MFA KEY + code> # (optional)
-          status: true | false # (optional) defaults to null
-          mfa_delete: true | false # (optional) defaults to false
-        lifecycle_rule: # (optional) defaults to []
-          - id: <rule ID> # (optional)
-            enabled: true | false # (optional) defaults to true
-            status: true | false # (optional) defaults to true
-            abort_incomplete_multipart_upload_days: <days> # (optional)
-            expiration: # (optional)
-              date: <date> # (optional)
-              days: <days> # (optional)
-              expired_object_delete_marker: true | false # (optional) defaults to false
-            transition: # (optional)
-              - date: <date> # (optional)
-                days: <days> # (optional)
-                storage_class: GLACIER | DEEP_ARCHIVE | INTELLIGENT_TIERING | ONEZONE_IA | STANDARD_IA | STANDARD # (optional)
-            noncurrent_version_expiration: # (optional)
-              days: <days> # (optional)
-              newer_noncurrent_versions: <number> # (optional)
-            noncurrent_version_transition: # (optional)
-              - days: <days> # (optional)
-                newer_noncurrent_versions: <number> # (optional)
-                storage_class: GLACIER | DEEP_ARCHIVE | INTELLIGENT_TIERING | ONEZONE_IA | STANDARD_IA | STANDARD # (optional)
-            filter: # (optional)
-              prefix: <prefix> # (optional)
-              object_size_greater_than: <size> # (optional)
-              object_size_less_than: <size> # (optional)
-              tags: # (optional) defaults to {}
-                key: value # (optional) additional tags can be added here
-        transition_default_minimum_object_size: <size> # (optional) defaults to null
-        object_lock: # (optional) defaults to {}
-          enabled: true | false # (optional) defaults to false
-          configuration: # (optional) defaults to {}
-            rule:
-              default_retention: # (optional)
-                mode: COMPLIANCE | GOVERNANCE # (optional)
-                days: <days> # (optional)
-                years: <years> # (optional)
-        replication: # (optional) defaults to {}
-          role: <IAM role ARN> # (required)
-          rules: # (required)
-            - id: <rule ID> # (required)
-              status: true | false # (required)
-              delete_marker_replication: true | false # (optional) defaults to null
-              destination: # (required)
-                bucket: <destination bucket ARN> # (required)
-                storage_class: GLACIER | DEEP_ARCHIVE | INTELLIGENT_TIERING | ONEZONE_IA | STANDARD_IA | STANDARD # (optional)
-                account: <destination account ID> # (optional)
-                access_control_translation: # (optional)
-                  owner: BucketOwner # (optional) defaults to BucketOwner
-                encryption_configuration: # (optional)
-              replica_kms_key_id: <KMS Key ARN> # (optional) only if encryption is required
-                replication_time: # (optional)
-                  status: true | false # (required) defaults to false
-                  minutes: <minutes> # (required)
-                metrics: # (optional)
-                  status: true | false # (required) defaults to false
-                  minutes: <minutes> # (required)
-              source_selection_criteria: # (optional)
-                replica_modifications: # (optional)
-                  enabled: true | false # (optional) defaults to false
-                sse_kms_encrypted_objects: # (optional)
-                  enabled: true | false # (optional) defaults to false
-              filter: # (optional)
-                prefix: <prefix> # (optional)
-                tags: # (optional) defaults to {}
-                  key: value # (optional) additional tags can be added here
-        tags: # (optional) defaults to {}
-          key: value # (optional) additional tags can be added here
-      ```
-# Example usage
-examples: |-
-  ## Standalone usage
-  To use this module standalone, add the following to your Terraform configuration:
-
-  ```hcl
-  module "s3_bucket" {
-    source  = "cloudopsworks/terraform-module-aws-s3-bucket"
-    version = "x.y.z" # Replace with the desired version
-
-    # Required variables
-    name = "my-s3-bucket"
-
-    # Optional variables
-    name_prefix          = "my-prefix"
-    random_bucket_suffix = true
-    short_system_name    = false
-    bucket_config        = {
-      # Add your bucket configuration here
-    }
-  }
-  
-  ## Terragrunt usage
-  To use this module with Terragrunt, create a terragrunt.hcl file with the following content:
   ```hcl
   terraform {
     source = "git::https://github.com/cloudopsworks/terraform-module-aws-s3-bucket.git?ref=x.y.z" # Replace with the desired version
   }
 
   inputs = {
-    # Required variables
-    name = "my-s3-bucket"
-
-    # Optional variables
+    name                 = "my-s3-bucket"
     name_prefix          = "my-prefix"
     random_bucket_suffix = true
     short_system_name    = false
-    bucket_config        = {
-      # Add your bucket configuration here
+
+    bucket_config = {
+      versioning        = true
+      versioning_config = {
+        status = "Enabled"
+      }
+
+      server_side_encryption_configuration = {
+        rule = {
+          apply_server_side_encryption_by_default = {
+            sse_algorithm = "AES256"
+          }
+        }
+      }
+
+      policies = {
+        deny_insecure_transport = true
+        require_latest_tls      = true
+        deny_unencrypted_uploads = true
+      }
+
+      lifecycle_rule = [
+        {
+          id      = "transition-to-ia"
+          enabled = true
+          transition = {
+            days          = 30
+            storage_class = "STANDARD_IA"
+          }
+        }
+      ]
+
+      object_lock = {
+        enabled = true
+        configuration = {
+          rule = {
+            default_retention = {
+              mode = "COMPLIANCE"
+              days = 90
+            }
+          }
+        }
+      }
+    }
+  }
+  ```
+
+  **Available Outputs:**
+
+  | Output | Description |
+  |--------|-------------|
+  | `bucket_id` | The ID (name) of the S3 bucket |
+  | `bucket_arn` | The ARN of the S3 bucket |
+  | `bucket_regional_domain_name` | The regional domain name of the bucket |
+  | `bucket_hosted_zone_id` | The Route 53 hosted zone ID for the bucket |
+  | `bucket_region` | The AWS region the bucket resides in |
+  | `bucket_website_domain` | Website domain name (when website hosting is configured) |
+  | `bucket_website_endpoint` | Website endpoint URL (when website hosting is configured) |
+
+  **Full `bucket_config` YAML reference:**
+
+  ```yaml
+  bucket_config:
+    acl: private | public-read | public-read-write | authenticated-read | log-delivery-write
+    control_object_ownership: true | false
+    object_ownership: ObjectWriter | BucketOwnerPreferred | BucketOwnerEnforced
+    force_destroy: true | false
+    policies:
+      elb_logs: true | false                     # (optional) defaults to false
+      lb_logs: true | false                      # (optional) defaults to false
+      access_logs: true | false                  # (optional) defaults to false
+      access_logs_accounts: []                   # (optional) additional AWS account IDs for access log delivery
+      access_logs_buckets: []                    # (optional) additional source bucket ARNs for access log delivery
+      deny_insecure_transport: true | false      # (optional) defaults to true
+      deny_incorrect_encryption: true | false    # (optional) defaults to false
+      deny_incorrect_kms_key: true | false       # (optional) defaults to false
+      deny_ssec_encrypted_uploads: true | false  # (optional) defaults to false
+      deny_unencrypted_uploads: true | false     # (optional) defaults to false
+      waf_logs: true | false                     # (optional) defaults to false
+      cloudtrail_logs: true | false              # (optional) defaults to false
+      analytics_destination: true | false        # (optional) defaults to false
+      require_latest_tls: true | false           # (optional) defaults to true
+      attach_public: true | false                # (optional) defaults to true
+    acls:
+      blocks_public: true | false                # (optional) defaults to true
+      blocks_public_policy: true | false         # (optional) defaults to true
+      ignore_public_acls: true | false           # (optional) defaults to true
+      restrict_public_buckets: true | false      # (optional) defaults to true
+    server_side_encryption_configuration:        # (optional) defaults to {}
+      rule:
+        apply_server_side_encryption_by_default:
+          sse_algorithm: AES256 | aws:kms
+          kms_master_key_id: <KMS Key ARN>       # (optional) only when sse_algorithm is aws:kms
+    policy: <JSON policy>                        # (optional) defaults to ""; use {{bucket_name}} as placeholder
+    website:                                     # (optional) defaults to {}
+      index_document: index.html
+      error_document: error.html
+      redirect_all_requests_to:                  # (optional)
+        host_name: <host name>
+        protocol: http | https
+      routing_rules:                             # (optional) defaults to []
+        - condition:                             # (optional)
+            http_error_code_returned_equals: <error code>
+            key_prefix_equals: <prefix>
+          redirect:
+            host_name: <host name>
+            protocol: http | https
+            http_redirect_code: <redirect code>  # (optional)
+            replace_key_prefix_with: <prefix>    # (optional)
+            replace_key_with: <key>              # (optional)
+    versioning: true | false                     # (optional) defaults to false - enable/disable versioning
+    versioning_config:                           # (optional) defaults to {}
+      mfa: <MFA KEY + code>                      # (optional) MFA device ARN and token for MFA-delete
+      status: Enabled | Suspended                # (optional) overrides versioning enable state when set
+      mfa_delete: Enabled | Disabled             # (optional) defaults to Disabled
+    lifecycle_rule:                              # (optional) defaults to []
+      - id: <rule ID>                            # (optional)
+        enabled: true | false                    # (optional) defaults to true
+        status: true | false                     # (optional) defaults to true
+        abort_incomplete_multipart_upload_days: <days> # (optional)
+        expiration:                              # (optional)
+          date: <date>                           # (optional)
+          days: <days>                           # (optional)
+          expired_object_delete_marker: true | false # (optional) defaults to false
+        transition:                              # (optional)
+          - date: <date>                         # (optional)
+            days: <days>                         # (optional)
+            storage_class: GLACIER | DEEP_ARCHIVE | INTELLIGENT_TIERING | ONEZONE_IA | STANDARD_IA | STANDARD
+        noncurrent_version_expiration:           # (optional)
+          days: <days>                           # (optional)
+          newer_noncurrent_versions: <number>    # (optional)
+        noncurrent_version_transition:           # (optional)
+          - days: <days>                         # (optional)
+            newer_noncurrent_versions: <number>  # (optional)
+            storage_class: GLACIER | DEEP_ARCHIVE | INTELLIGENT_TIERING | ONEZONE_IA | STANDARD_IA | STANDARD
+        filter:                                  # (optional)
+          prefix: <prefix>                       # (optional)
+          object_size_greater_than: <size>       # (optional)
+          object_size_less_than: <size>          # (optional)
+          tags: {}                               # (optional)
+    transition_default_minimum_object_size: <size> # (optional) defaults to null
+    object_lock:                                 # (optional) defaults to {}
+      enabled: true | false                      # (optional) defaults to false
+      configuration:                             # (optional) defaults to {}
+        rule:
+          default_retention:                     # (optional)
+            mode: COMPLIANCE | GOVERNANCE
+            days: <days>                         # (optional)
+            years: <years>                       # (optional)
+    replication:                                 # (optional) defaults to {}
+      role: <IAM role ARN>                       # (required)
+      rules:                                     # (required)
+        - id: <rule ID>                          # (required)
+          status: true | false                   # (required)
+          delete_marker_replication: true | false # (optional) defaults to null
+          destination:                           # (required)
+            bucket: <destination bucket ARN>     # (required)
+            storage_class: GLACIER | DEEP_ARCHIVE | INTELLIGENT_TIERING | ONEZONE_IA | STANDARD_IA | STANDARD # (optional)
+            account: <destination account ID>    # (optional)
+            access_control_translation:          # (optional)
+              owner: BucketOwner
+            encryption_configuration:            # (optional)
+              replica_kms_key_id: <KMS Key ARN>  # (optional) only if encryption is required
+            replication_time:                    # (optional)
+              status: true | false               # (required)
+              minutes: <minutes>                 # (required)
+            metrics:                             # (optional)
+              status: true | false               # (required)
+              minutes: <minutes>                 # (required)
+          source_selection_criteria:             # (optional)
+            replica_modifications:               # (optional)
+              enabled: true | false
+            sse_kms_encrypted_objects:           # (optional)
+              enabled: true | false
+          filter:                                # (optional)
+            prefix: <prefix>                     # (optional)
+            tags: {}                             # (optional)
+    tags: {}                                     # (optional) additional tags
+  ```
+# Example usage
+examples: |-
+  ## Simple private bucket with encryption and TLS enforcement
+
+  ```hcl
+  terraform {
+    source = "git::https://github.com/cloudopsworks/terraform-module-aws-s3-bucket.git?ref=x.y.z"
+  }
+
+  inputs = {
+    name                 = "app-data"
+    name_prefix          = "myorg"
+    random_bucket_suffix = true
+
+    bucket_config = {
+      server_side_encryption_configuration = {
+        rule = {
+          apply_server_side_encryption_by_default = {
+            sse_algorithm = "AES256"
+          }
+        }
+      }
+      policies = {
+        deny_insecure_transport  = true
+        require_latest_tls       = true
+        deny_unencrypted_uploads = true
+      }
+    }
+  }
+  ```
+
+  ## Access log destination bucket with WAF and CloudTrail support
+
+  ```hcl
+  terraform {
+    source = "git::https://github.com/cloudopsworks/terraform-module-aws-s3-bucket.git?ref=x.y.z"
+  }
+
+  inputs = {
+    name                 = "log-archive"
+    name_prefix          = "myorg"
+    random_bucket_suffix = false
+
+    bucket_config = {
+      acl                      = "log-delivery-write"
+      control_object_ownership = true
+      object_ownership         = "BucketOwnerPreferred"
+      policies = {
+        access_logs          = true
+        waf_logs             = true
+        cloudtrail_logs      = true
+        deny_insecure_transport = true
+        require_latest_tls   = true
+      }
+      versioning = true
+      lifecycle_rule = [
+        {
+          id      = "expire-logs"
+          enabled = true
+          expiration = {
+            days = 365
+          }
+        }
+      ]
+    }
+  }
+  ```
+
+  ## Versioned bucket with cross-region replication
+
+  ```hcl
+  terraform {
+    source = "git::https://github.com/cloudopsworks/terraform-module-aws-s3-bucket.git?ref=x.y.z"
+  }
+
+  inputs = {
+    name                 = "critical-data"
+    name_prefix          = "myorg"
+    random_bucket_suffix = true
+
+    bucket_config = {
+      versioning = true
+      replication = {
+        role = "arn:aws:iam::123456789012:role/s3-replication-role"
+        rules = [
+          {
+            id     = "replicate-all"
+            status = true
+            destination = {
+              bucket        = "arn:aws:s3:::myorg-critical-data-replica"
+              storage_class = "STANDARD_IA"
+            }
+          }
+        ]
+      }
     }
   }
   ```
 
 # How to get started quickly
 quickstart: |-
-  Here's how to quickly get started with the S3 bucket module:
+  Here's how to quickly get started with the S3 bucket module using Terragrunt:
 
-  1. Create a new Terraform configuration file (e.g., `main.tf`):
+  1. Create a `terragrunt.hcl` file:
      ```hcl
-     module "s3_bucket" {
-       source  = "cloudopsworks/terraform-module-aws-s3-bucket"
-       version = "1.0.0"  # Replace with latest version
+     terraform {
+       source = "git::https://github.com/cloudopsworks/terraform-module-aws-s3-bucket.git?ref=x.y.z"
+     }
 
-       name         = "my-quick-bucket"
-       name_prefix  = "demo"
+     inputs = {
+       name        = "my-quick-bucket"
+       name_prefix = "demo"
 
        bucket_config = {
          versioning = true
@@ -299,29 +358,20 @@ quickstart: |-
          }
          policies = {
            deny_insecure_transport = true
-           require_latest_tls = true
+           require_latest_tls      = true
          }
        }
      }
      ```
 
-  2. Initialize the working directory:
+  2. Initialize and apply:
      ```bash
-     terraform init
-     ```
-
-  3. Review the changes:
-     ```bash
-     terraform plan
-     ```
-
-  4. Apply the configuration:
-     ```bash
-     terraform apply
+     terragrunt init
+     terragrunt apply
      ```
 
   This will create a secure S3 bucket with versioning enabled, AES-256 encryption, and basic security policies.
-  The bucket will be named using the prefix "demo" followed by "my-quick-bucket".
+  The bucket will be named using the prefix "demo" followed by "my-quick-bucket" and a random 8-character suffix.
 
 include:
   - "docs/targets.md"

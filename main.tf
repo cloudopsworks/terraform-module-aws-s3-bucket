@@ -45,6 +45,9 @@ module "this" {
   attach_deny_incorrect_kms_key_sse          = try(var.bucket_config.policies.deny_incorrect_kms_key, false)
   attach_deny_ssec_encrypted_object_uploads  = try(var.bucket_config.policies.deny_ssec_encrypted_uploads, false)
   attach_deny_unencrypted_object_uploads     = try(var.bucket_config.policies.deny_unencrypted_uploads, false)
+  attach_waf_log_delivery_policy             = try(var.bucket_config.policies.waf_logs, false)
+  attach_cloudtrail_log_delivery_policy      = try(var.bucket_config.policies.cloudtrail_logs, false)
+  attach_analytics_destination_policy        = try(var.bucket_config.policies.analytics_destination, false)
   attach_require_latest_tls_policy           = try(var.bucket_config.policies.require_latest_tls, true)
   attach_public_policy                       = try(var.bucket_config.policies.attach_public, true)
   block_public_acls                          = try(var.bucket_config.acls.blocks_public, true)
@@ -56,8 +59,8 @@ module "this" {
   policy                                     = try(var.bucket_config.policy, "") != "" ? replace(var.bucket_config.policy, "{{bucket_name}}", local.bucket_name) : null
   website                                    = try(var.bucket_config.website, {})
   lifecycle_rule                             = try(var.bucket_config.lifecycle_rule, [])
-  access_log_delivery_policy_source_accounts = try(var.bucket_config.policies.access_logs, false) ? [data.aws_caller_identity.current.account_id] : []
-  access_log_delivery_policy_source_buckets  = try(var.bucket_config.policies.access_logs, false) ? ["arn:aws:s3:::${local.bucket_name}"] : []
+  access_log_delivery_policy_source_accounts = try(var.bucket_config.policies.access_logs, false) ? concat(try(var.bucket_config.policies.access_logs_accounts, []),[data.aws_caller_identity.current.account_id]) : []
+  access_log_delivery_policy_source_buckets  = try(var.bucket_config.policies.access_logs, false) ? concat(try(var.bucket_config.policies.access_logs_buckets, []),["arn:aws:s3:::${local.bucket_name}"]) : []
   transition_default_minimum_object_size     = try(var.bucket_config.transition_default_minimum_object_size, null)
   versioning                                 = local.versioning
   object_lock_enabled                        = try(var.bucket_config.object_lock.enabled, false)

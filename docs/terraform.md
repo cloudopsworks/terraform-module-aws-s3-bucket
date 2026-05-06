@@ -10,8 +10,8 @@
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.37.0 |
-| <a name="provider_random"></a> [random](#provider\_random) | 3.8.1 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.4 |
+| <a name="provider_random"></a> [random](#provider\_random) | ~> 3.5 |
 
 ## Modules
 

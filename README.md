@@ -181,7 +181,7 @@ bucket_config:
       apply_server_side_encryption_by_default:
         sse_algorithm: AES256 | aws:kms
         kms_master_key_id: <KMS Key ARN>       # (optional) only when sse_algorithm is aws:kms
-  policy: <JSON policy>                        # (optional) defaults to ""; use {{bucket_name}} as placeholder
+  policy: <JSON policy>                        # (optional) defaults to ""; use `{{bucket_name}}` as placeholder
   website:                                     # (optional) defaults to {}
     index_document: index.html
     error_document: error.html

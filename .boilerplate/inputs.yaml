@@ -41,7 +41,7 @@ bucket_config: {} # (Optional) S3 bucket settings object. Default: {}. Uncomment
 #         sse_algorithm: AES256 # (Optional) Default encryption algorithm. Valid values: AES256, aws:kms.
 #         kms_master_key_id: arn:aws:kms:us-east-1:123456789012:key/00000000-0000-0000-0000-000000000000 # (Optional) KMS key ARN or ID when sse_algorithm is aws:kms. Default: null.
 #
-#   policy: "" # (Optional) Raw JSON bucket policy to attach. Use {{bucket_name}} as a placeholder for the final bucket name. Default: "".
+#   policy: "" # (Optional) Raw JSON bucket policy to attach. The module replaces the bucket-name placeholder with the final bucket name before applying the policy. Default: "".
 #
 #   website: # (Optional) Static website hosting configuration. Default: {}.
 #     index_document: index.html # (Optional) Index document served by the website endpoint. Default: index.html.

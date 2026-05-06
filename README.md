@@ -76,64 +76,224 @@ The module is designed to be used both standalone with Terraform and integrated 
 Instead pin to the release tag (e.g. `?ref=vX.Y.Z`) of one of our [latest releases](https://github.com/cloudopsworks/terraform-module-aws-s3-bucket/releases).
 
 
-To use this Terraform module with Terragrunt, create a `terragrunt.hcl` file as follows:
+### Bootstrap a new deployment with Terragrunt Scaffold
+
+```sh
+# 1. Create and enter the target deployment directory
+mkdir -p production/us-east-1/spoke001/s3-bucket
+cd production/us-east-1/spoke001/s3-bucket
+
+# 2. Scaffold the module (creates inputs.yaml, terragrunt.hcl, local-tags.json)
+terragrunt scaffold github.com/cloudopsworks/terraform-module-aws-s3-bucket
+
+# 3. Edit inputs.yaml with deployment-specific values
+vi inputs.yaml
+
+# 4. Apply
+terragrunt apply
+```
+
+---
+
+### Generated `inputs.yaml`
+
+After scaffolding, `inputs.yaml` contains all module-specific variables pre-populated with
+comments. Edit the values to match your deployment:
+
+```yaml
+# Module configuration
+
+name: "" # (Optional) Exact S3 bucket name. Conflicts with name_prefix. Set either name or name_prefix. Default: "".
+name_prefix: "" # (Optional) Prefix used to build the bucket name with the system naming convention. Conflicts with name. Set either name_prefix or name. Default: "".
+random_bucket_suffix: true # (Optional) Appends a random 8-character suffix to the generated bucket name. Set false for deterministic names. Default: true.
+short_system_name: false # (Optional) Uses the short system name in generated bucket names instead of the full system name. Default: false.
+bucket_config: {} # (Optional) S3 bucket settings object. Default: {}. Uncomment and tailor the reference block below as needed.
+
+# bucket_config:
+#   acl: private # (Optional) Canned ACL to apply to the bucket. Valid values: private, public-read, public-read-write, authenticated-read, log-delivery-write. Default: private.
+#   control_object_ownership: true # (Optional) Manages S3 Object Ownership controls for the bucket. Default: true.
+#   object_ownership: ObjectWriter # (Optional) Object ownership mode. Valid values: ObjectWriter, BucketOwnerPreferred, BucketOwnerEnforced. Default: ObjectWriter.
+#   force_destroy: false # (Optional) Deletes the bucket even when it contains objects. Default: false.
+#
+#   policies: # (Optional) Generated bucket policy toggles. Default: {}.
+#     elb_logs: false # (Optional) Allows classic ELB log delivery to this bucket. Default: false.
+#     lb_logs: false # (Optional) Allows ALB/NLB log delivery to this bucket. Default: false.
+#     access_logs: false # (Optional) Allows S3 server access log delivery to this bucket. Default: false.
+#     access_logs_accounts: [] # (Optional) Additional AWS account IDs allowed to deliver access logs. Default: [].
+#     access_logs_buckets: [] # (Optional) Additional source bucket ARNs allowed to deliver access logs. Default: [].
+#     deny_insecure_transport: true # (Optional) Denies requests that do not use TLS/HTTPS. Default: true.
+#     deny_incorrect_encryption: false # (Optional) Denies uploads that use the wrong SSE algorithm. Default: false.
+#     deny_incorrect_kms_key: false # (Optional) Denies uploads that use the wrong KMS key. Default: false.
+#     deny_ssec_encrypted_uploads: false # (Optional) Denies uploads encrypted with customer-provided keys (SSE-C). Default: false.
+#     deny_unencrypted_uploads: false # (Optional) Denies uploads without server-side encryption. Default: false.
+#     waf_logs: false # (Optional) Allows AWS WAF log delivery to this bucket. Default: false.
+#     cloudtrail_logs: false # (Optional) Allows CloudTrail log delivery to this bucket. Default: false.
+#     analytics_destination: false # (Optional) Allows S3 Analytics export delivery to this bucket. Default: false.
+#     require_latest_tls: true # (Optional) Enforces the latest TLS policy supported by the module. Default: true.
+#     attach_public: true # (Optional) Attaches the public policy document when required by the upstream module. Default: true.
+#
+#   acls: # (Optional) Public access block controls. Default: {}.
+#     blocks_public: true # (Optional) Blocks new public ACLs. Default: true.
+#     blocks_public_policy: true # (Optional) Blocks new public bucket policies. Default: true.
+#     ignore_public_acls: true # (Optional) Ignores existing public ACLs. Default: true.
+#     restrict_public_buckets: true # (Optional) Restricts access to buckets with public policies. Default: true.
+#
+#   server_side_encryption_configuration: # (Optional) Default server-side encryption settings. Default: {}.
+#     rule:
+#       apply_server_side_encryption_by_default:
+#         sse_algorithm: AES256 # (Optional) Default encryption algorithm. Valid values: AES256, aws:kms.
+#         kms_master_key_id: arn:aws:kms:us-east-1:123456789012:key/00000000-0000-0000-0000-000000000000 # (Optional) KMS key ARN or ID when sse_algorithm is aws:kms. Default: null.
+#
+#   policy: "" # (Optional) Raw JSON bucket policy to attach. The module replaces the bucket-name placeholder with the final bucket name before applying the policy. Default: "".
+#
+#   website: # (Optional) Static website hosting configuration. Default: {}.
+#     index_document: index.html # (Optional) Index document served by the website endpoint. Default: index.html.
+#     error_document: error.html # (Optional) Error document served by the website endpoint. Default: error.html.
+#     redirect_all_requests_to: # (Optional) Redirects all requests to another host/protocol. Default: null.
+#       host_name: docs.example.com # (Optional) Redirect target host name.
+#       protocol: https # (Optional) Redirect target protocol. Valid values: http, https.
+#     routing_rules: # (Optional) Website routing rules. Default: [].
+#       - condition: # (Optional) Condition that triggers the redirect.
+#           http_error_code_returned_equals: "404" # (Optional) HTTP error code that triggers the redirect.
+#           key_prefix_equals: docs/ # (Optional) Key prefix that triggers the redirect.
+#         redirect:
+#           host_name: static.example.com # (Required) Redirect target host name.
+#           protocol: https # (Optional) Redirect target protocol. Valid values: http, https.
+#           http_redirect_code: "301" # (Optional) HTTP redirect code returned by S3.
+#           replace_key_prefix_with: public/ # (Optional) Replaces the matching prefix in the object key.
+#           replace_key_with: index.html # (Optional) Replaces the object key entirely.
+#
+#   versioning: false # (Optional) Enables bucket versioning when true. Default: false.
+#   versioning_config: # (Optional) Advanced versioning settings merged with versioning. Default: {}.
+#     mfa: arn:aws:iam::123456789012:mfa/admin 123456 # (Optional) MFA device ARN and current token for MFA delete operations. Default: null.
+#     status: Enabled # (Optional) Explicit versioning status. Valid values: Enabled, Suspended. Default: derived from versioning.
+#     mfa_delete: Disabled # (Optional) MFA delete state. Valid values: Enabled, Disabled. Default: Disabled.
+#
+#   lifecycle_rule: # (Optional) Object lifecycle management rules. Default: [].
+#     - id: transition-to-ia # (Optional) Lifecycle rule identifier.
+#       enabled: true # (Optional) Legacy enable flag supported by the upstream module. Default: true.
+#       status: true # (Optional) Enables the lifecycle rule when true. Default: true.
+#       abort_incomplete_multipart_upload_days: 7 # (Optional) Aborts incomplete multipart uploads after the specified days. Default: null.
+#       expiration: # (Optional) Expiration policy for current objects. Default: null.
+#         date: "2026-12-31" # (Optional) Absolute expiration date in YYYY-MM-DD format.
+#         days: 90 # (Optional) Days after object creation before expiration.
+#         expired_object_delete_marker: false # (Optional) Removes expired delete markers. Default: false.
+#       transition: # (Optional) Transition rules for current objects. Default: [].
+#         - date: "2026-06-30" # (Optional) Absolute transition date in YYYY-MM-DD format.
+#           days: 30 # (Optional) Days after object creation before transition.
+#           storage_class: STANDARD_IA # (Optional) Transition target storage class. Valid values: GLACIER, DEEP_ARCHIVE, INTELLIGENT_TIERING, ONEZONE_IA, STANDARD_IA, STANDARD.
+#       noncurrent_version_expiration: # (Optional) Expiration policy for noncurrent object versions. Default: null.
+#         days: 30 # (Optional) Days to retain noncurrent versions.
+#         newer_noncurrent_versions: 5 # (Optional) Number of newer noncurrent versions to retain.
+#       noncurrent_version_transition: # (Optional) Transition rules for noncurrent object versions. Default: [].
+#         - days: 30 # (Optional) Days to wait before transition.
+#           newer_noncurrent_versions: 5 # (Optional) Number of newer versions to retain before transition.
+#           storage_class: GLACIER # (Optional) Transition target storage class. Valid values: GLACIER, DEEP_ARCHIVE, INTELLIGENT_TIERING, ONEZONE_IA, STANDARD_IA, STANDARD.
+#       filter: # (Optional) Filter that scopes the lifecycle rule. Default: null.
+#         prefix: logs/ # (Optional) Applies the rule only to objects with this prefix.
+#         object_size_greater_than: 1048576 # (Optional) Applies only to objects larger than this size in bytes.
+#         object_size_less_than: 1073741824 # (Optional) Applies only to objects smaller than this size in bytes.
+#         tags: # (Optional) Tag filter map. Default: {}.
+#           data_classification: archive # (Optional) Example tag filter entry.
+#
+#   transition_default_minimum_object_size: null # (Optional) Minimum object size, in bytes, eligible for transition actions. Default: null.
+#
+#   object_lock: # (Optional) S3 Object Lock configuration. Default: {}.
+#     enabled: false # (Optional) Enables Object Lock for the bucket. Default: false.
+#     configuration: # (Optional) Default retention policy. Default: {}.
+#       rule:
+#         default_retention:
+#           mode: COMPLIANCE # (Optional) Retention mode. Valid values: COMPLIANCE, GOVERNANCE.
+#           days: 90 # (Optional) Default retention period in days. Set either days or years.
+#           years: null # (Optional) Default retention period in years. Set either years or days.
+#
+#   replication: # (Optional) Cross-region/account replication settings. Default: {}.
+#     role: arn:aws:iam::123456789012:role/s3-replication-role # (Required) IAM role ARN assumed by S3 for replication.
+#     rules: # (Required) Replication rules. Default: [].
+#       - id: replicate-critical-data # (Required) Replication rule identifier.
+#         status: true # (Required) Enables the replication rule when true.
+#         delete_marker_replication: true # (Optional) Replicates delete markers when true. Default: null.
+#         destination: # (Required) Replication destination settings.
+#           bucket: arn:aws:s3:::destination-bucket # (Required) Destination bucket ARN.
+#           storage_class: STANDARD_IA # (Optional) Destination storage class. Valid values: GLACIER, DEEP_ARCHIVE, INTELLIGENT_TIERING, ONEZONE_IA, STANDARD_IA, STANDARD.
+#           account: "123456789012" # (Optional) Destination AWS account ID.
+#           access_control_translation: # (Optional) Ownership translation settings. Default: null.
+#             owner: BucketOwner # (Optional) Required value when access control translation is enabled.
+#           encryption_configuration: # (Optional) Replica encryption settings. Default: null.
+#             replica_kms_key_id: arn:aws:kms:us-east-1:123456789012:key/11111111-1111-1111-1111-111111111111 # (Optional) KMS key ARN for replicated objects.
+#           replication_time: # (Optional) S3 Replication Time Control settings. Default: null.
+#             status: true # (Required) Enables replication time control when true.
+#             minutes: 15 # (Required) Target replication time in minutes.
+#           metrics: # (Optional) Replication metrics settings. Default: null.
+#             status: true # (Required) Enables replication metrics when true.
+#             minutes: 15 # (Required) Event threshold in minutes.
+#         source_selection_criteria: # (Optional) Source object selection rules. Default: null.
+#           replica_modifications: # (Optional) Replicates metadata changes to replicas. Default: null.
+#             enabled: true # (Optional) Enables replica modifications sync. Default: false.
+#           sse_kms_encrypted_objects: # (Optional) Restricts replication to KMS-encrypted objects. Default: null.
+#             enabled: true # (Optional) Enables replication for SSE-KMS encrypted objects. Default: false.
+#         filter: # (Optional) Filter that scopes the replication rule. Default: null.
+#           prefix: critical/ # (Optional) Applies the rule only to objects with this prefix.
+#           tags: # (Optional) Tag filter map. Default: {}.
+#             replication: enabled # (Optional) Example tag filter entry.
+#
+#   tags: {} # (Optional) Additional tags merged only into this bucket's tags. Default: {}.
+```
+
+When setting `bucket_config.policy`, you may use the module placeholder token `{{bucket_name}}`.
+The module replaces it with the final bucket name before applying the policy.
+
+---
+
+### Generated `terragrunt.hcl`
+
+Scaffold produces a `terragrunt.hcl` that wires `inputs.yaml` into the module inputs:
 
 ```hcl
+locals {
+  local_vars  = yamldecode(file("./inputs.yaml"))
+  spoke_vars  = yamldecode(file(find_in_parent_folders("spoke-inputs.yaml")))
+  region_vars = yamldecode(file(find_in_parent_folders("region-inputs.yaml")))
+  env_vars    = yamldecode(file(find_in_parent_folders("env-inputs.yaml")))
+  global_vars = yamldecode(file(find_in_parent_folders("global-inputs.yaml")))
+
+  local_tags  = jsondecode(file("./local-tags.json"))
+  spoke_tags  = jsondecode(file(find_in_parent_folders("spoke-tags.json")))
+  region_tags = jsondecode(file(find_in_parent_folders("region-tags.json")))
+  env_tags    = jsondecode(file(find_in_parent_folders("env-tags.json")))
+  global_tags = jsondecode(file(find_in_parent_folders("global-tags.json")))
+
+  tags = merge(
+    local.global_tags,
+    local.env_tags,
+    local.region_tags,
+    local.spoke_tags,
+    local.local_tags
+  )
+}
+
+include "root" {
+  path = find_in_parent_folders("root.hcl")
+}
+
 terraform {
-  source = "git::https://github.com/cloudopsworks/terraform-module-aws-s3-bucket.git?ref=x.y.z" # Replace with the desired version
+  source = "github.com/cloudopsworks/terraform-module-aws-s3-bucket"
 }
 
 inputs = {
-  name                 = "my-s3-bucket"
-  name_prefix          = "my-prefix"
-  random_bucket_suffix = true
-  short_system_name    = false
-
-  bucket_config = {
-    versioning        = true
-    versioning_config = {
-      status = "Enabled"
-    }
-
-    server_side_encryption_configuration = {
-      rule = {
-        apply_server_side_encryption_by_default = {
-          sse_algorithm = "AES256"
-        }
-      }
-    }
-
-    policies = {
-      deny_insecure_transport = true
-      require_latest_tls      = true
-      deny_unencrypted_uploads = true
-    }
-
-    lifecycle_rule = [
-      {
-        id      = "transition-to-ia"
-        enabled = true
-        transition = {
-          days          = 30
-          storage_class = "STANDARD_IA"
-        }
-      }
-    ]
-
-    object_lock = {
-      enabled = true
-      configuration = {
-        rule = {
-          default_retention = {
-            mode = "COMPLIANCE"
-            days = 90
-          }
-        }
-      }
-    }
-  }
+  is_hub               = false
+  org                  = local.env_vars.org
+  spoke_def            = local.spoke_vars.spoke
+  name                 = try(local.local_vars.name, "")
+  name_prefix          = try(local.local_vars.name_prefix, "")
+  random_bucket_suffix = try(local.local_vars.random_bucket_suffix, true)
+  short_system_name    = try(local.local_vars.short_system_name, false)
+  bucket_config        = try(local.local_vars.bucket_config, {})
+  extra_tags           = local.tags
 }
 ```
+
+---
 
 **Available Outputs:**
 
@@ -146,127 +306,6 @@ inputs = {
 | `bucket_region` | The AWS region the bucket resides in |
 | `bucket_website_domain` | Website domain name (when website hosting is configured) |
 | `bucket_website_endpoint` | Website endpoint URL (when website hosting is configured) |
-
-**Full `bucket_config` YAML reference:**
-
-```yaml
-bucket_config:
-  acl: private | public-read | public-read-write | authenticated-read | log-delivery-write
-  control_object_ownership: true | false
-  object_ownership: ObjectWriter | BucketOwnerPreferred | BucketOwnerEnforced
-  force_destroy: true | false
-  policies:
-    elb_logs: true | false                     # (optional) defaults to false
-    lb_logs: true | false                      # (optional) defaults to false
-    access_logs: true | false                  # (optional) defaults to false
-    access_logs_accounts: []                   # (optional) additional AWS account IDs for access log delivery
-    access_logs_buckets: []                    # (optional) additional source bucket ARNs for access log delivery
-    deny_insecure_transport: true | false      # (optional) defaults to true
-    deny_incorrect_encryption: true | false    # (optional) defaults to false
-    deny_incorrect_kms_key: true | false       # (optional) defaults to false
-    deny_ssec_encrypted_uploads: true | false  # (optional) defaults to false
-    deny_unencrypted_uploads: true | false     # (optional) defaults to false
-    waf_logs: true | false                     # (optional) defaults to false
-    cloudtrail_logs: true | false              # (optional) defaults to false
-    analytics_destination: true | false        # (optional) defaults to false
-    require_latest_tls: true | false           # (optional) defaults to true
-    attach_public: true | false                # (optional) defaults to true
-  acls:
-    blocks_public: true | false                # (optional) defaults to true
-    blocks_public_policy: true | false         # (optional) defaults to true
-    ignore_public_acls: true | false           # (optional) defaults to true
-    restrict_public_buckets: true | false      # (optional) defaults to true
-  server_side_encryption_configuration:        # (optional) defaults to {}
-    rule:
-      apply_server_side_encryption_by_default:
-        sse_algorithm: AES256 | aws:kms
-        kms_master_key_id: <KMS Key ARN>       # (optional) only when sse_algorithm is aws:kms
-  policy: <JSON policy>                        # (optional) defaults to ""; use `{{bucket_name}}` as placeholder
-  website:                                     # (optional) defaults to {}
-    index_document: index.html
-    error_document: error.html
-    redirect_all_requests_to:                  # (optional)
-      host_name: <host name>
-      protocol: http | https
-    routing_rules:                             # (optional) defaults to []
-      - condition:                             # (optional)
-          http_error_code_returned_equals: <error code>
-          key_prefix_equals: <prefix>
-        redirect:
-          host_name: <host name>
-          protocol: http | https
-          http_redirect_code: <redirect code>  # (optional)
-          replace_key_prefix_with: <prefix>    # (optional)
-          replace_key_with: <key>              # (optional)
-  versioning: true | false                     # (optional) defaults to false - enable/disable versioning
-  versioning_config:                           # (optional) defaults to {}
-    mfa: <MFA KEY + code>                      # (optional) MFA device ARN and token for MFA-delete
-    status: Enabled | Suspended                # (optional) overrides versioning enable state when set
-    mfa_delete: Enabled | Disabled             # (optional) defaults to Disabled
-  lifecycle_rule:                              # (optional) defaults to []
-    - id: <rule ID>                            # (optional)
-      enabled: true | false                    # (optional) defaults to true
-      status: true | false                     # (optional) defaults to true
-      abort_incomplete_multipart_upload_days: <days> # (optional)
-      expiration:                              # (optional)
-        date: <date>                           # (optional)
-        days: <days>                           # (optional)
-        expired_object_delete_marker: true | false # (optional) defaults to false
-      transition:                              # (optional)
-        - date: <date>                         # (optional)
-          days: <days>                         # (optional)
-          storage_class: GLACIER | DEEP_ARCHIVE | INTELLIGENT_TIERING | ONEZONE_IA | STANDARD_IA | STANDARD
-      noncurrent_version_expiration:           # (optional)
-        days: <days>                           # (optional)
-        newer_noncurrent_versions: <number>    # (optional)
-      noncurrent_version_transition:           # (optional)
-        - days: <days>                         # (optional)
-          newer_noncurrent_versions: <number>  # (optional)
-          storage_class: GLACIER | DEEP_ARCHIVE | INTELLIGENT_TIERING | ONEZONE_IA | STANDARD_IA | STANDARD
-      filter:                                  # (optional)
-        prefix: <prefix>                       # (optional)
-        object_size_greater_than: <size>       # (optional)
-        object_size_less_than: <size>          # (optional)
-        tags: {}                               # (optional)
-  transition_default_minimum_object_size: <size> # (optional) defaults to null
-  object_lock:                                 # (optional) defaults to {}
-    enabled: true | false                      # (optional) defaults to false
-    configuration:                             # (optional) defaults to {}
-      rule:
-        default_retention:                     # (optional)
-          mode: COMPLIANCE | GOVERNANCE
-          days: <days>                         # (optional)
-          years: <years>                       # (optional)
-  replication:                                 # (optional) defaults to {}
-    role: <IAM role ARN>                       # (required)
-    rules:                                     # (required)
-      - id: <rule ID>                          # (required)
-        status: true | false                   # (required)
-        delete_marker_replication: true | false # (optional) defaults to null
-        destination:                           # (required)
-          bucket: <destination bucket ARN>     # (required)
-          storage_class: GLACIER | DEEP_ARCHIVE | INTELLIGENT_TIERING | ONEZONE_IA | STANDARD_IA | STANDARD # (optional)
-          account: <destination account ID>    # (optional)
-          access_control_translation:          # (optional)
-            owner: BucketOwner
-          encryption_configuration:            # (optional)
-            replica_kms_key_id: <KMS Key ARN>  # (optional) only if encryption is required
-          replication_time:                    # (optional)
-            status: true | false               # (required)
-            minutes: <minutes>                 # (required)
-          metrics:                             # (optional)
-            status: true | false               # (required)
-            minutes: <minutes>                 # (required)
-        source_selection_criteria:             # (optional)
-          replica_modifications:               # (optional)
-            enabled: true | false
-          sse_kms_encrypted_objects:           # (optional)
-            enabled: true | false
-        filter:                                # (optional)
-          prefix: <prefix>                     # (optional)
-          tags: {}                             # (optional)
-  tags: {}                                     # (optional) additional tags
-```
 
 ## Quick Start
 
@@ -434,8 +473,8 @@ Available targets:
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.4 |
-| <a name="provider_random"></a> [random](#provider\_random) | ~> 3.5 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.37.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | 3.8.1 |
 
 ## Modules
 

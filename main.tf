@@ -59,8 +59,8 @@ module "this" {
   policy                                     = try(var.bucket_config.policy, "") != "" ? replace(var.bucket_config.policy, "{{bucket_name}}", local.bucket_name) : null
   website                                    = try(var.bucket_config.website, {})
   lifecycle_rule                             = try(var.bucket_config.lifecycle_rule, [])
-  access_log_delivery_policy_source_accounts = try(var.bucket_config.policies.access_logs, false) ? concat(try(var.bucket_config.policies.access_logs_accounts, []),[data.aws_caller_identity.current.account_id]) : []
-  access_log_delivery_policy_source_buckets  = try(var.bucket_config.policies.access_logs, false) ? concat(try(var.bucket_config.policies.access_logs_buckets, []),["arn:aws:s3:::${local.bucket_name}"]) : []
+  access_log_delivery_policy_source_accounts = try(var.bucket_config.policies.access_logs, false) ? concat(try(var.bucket_config.policies.access_logs_accounts, []), [data.aws_caller_identity.current.account_id]) : []
+  access_log_delivery_policy_source_buckets  = try(var.bucket_config.policies.access_logs, false) ? concat(try(var.bucket_config.policies.access_logs_buckets, []), ["arn:aws:s3:::${local.bucket_name}"]) : []
   transition_default_minimum_object_size     = try(var.bucket_config.transition_default_minimum_object_size, null)
   versioning                                 = local.versioning
   object_lock_enabled                        = try(var.bucket_config.object_lock.enabled, false)

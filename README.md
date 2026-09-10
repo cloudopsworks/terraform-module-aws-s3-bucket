@@ -10,7 +10,7 @@
 
 [![cloudopsworks][logo]](https://cloudopsworks.co/)
 
-# Terraform S3 Bucket Module
+# Terraform S3 Bucket Module [![Latest Release](https://img.shields.io/github/release/cloudopsworks/terraform-module-aws-s3-bucket.svg?style=for-the-badge)](https://github.com/cloudopsworks/terraform-module-aws-s3-bucket/releases/latest) [![Last Updated](https://img.shields.io/github/last-commit/cloudopsworks/terraform-module-aws-s3-bucket.svg?style=for-the-badge)](https://github.com/cloudopsworks/terraform-module-aws-s3-bucket/commits)
 
 
 This Terraform module creates and manages an Amazon S3 bucket with comprehensive configuration options including versioning,
@@ -69,6 +69,19 @@ This Terraform module provides a comprehensive solution for managing AWS S3 buck
 
 The module is designed to be used both standalone with Terraform and integrated with Terragrunt for enhanced configuration management.
 
+### Secure-by-default object ownership
+
+Buckets default to `object_ownership = BucketOwnerEnforced`, which disables ACLs entirely and makes the bucket
+owner the owner of every object. Accordingly, `acl` now defaults to `null` and no ACL resource is managed unless
+you set one explicitly.
+
+**Upgrading from an earlier release:** buckets previously created with the module defaults were provisioned with
+`ObjectWriter` ownership and a `private` ACL. Applying this version against that state flips the ownership controls
+to `BucketOwnerEnforced` and removes the managed ACL. Review the plan before applying, and pin
+`object_ownership: ObjectWriter` (or `BucketOwnerPreferred`) in `bucket_config` for any bucket that must keep
+accepting ACL-based writes, such as legacy ELB or S3 access-log delivery. Setting `acl` while ownership remains
+`BucketOwnerEnforced` is rejected by AWS with `AccessControlListNotSupported`.
+
 ## Usage
 
 
@@ -110,9 +123,9 @@ short_system_name: false # (Optional) Uses the short system name in generated bu
 bucket_config: {} # (Optional) S3 bucket settings object. Default: {}. Uncomment and tailor the reference block below as needed.
 
 # bucket_config:
-#   acl: private # (Optional) Canned ACL to apply to the bucket. Valid values: private, public-read, public-read-write, authenticated-read, log-delivery-write. Default: private.
+#   acl: private # (Optional) Canned ACL to apply to the bucket. Valid values: private, public-read, public-read-write, authenticated-read, log-delivery-write. Default: null (no ACL is managed). Requires object_ownership to be ObjectWriter or BucketOwnerPreferred - AWS rejects any ACL when ownership is BucketOwnerEnforced.
 #   control_object_ownership: true # (Optional) Manages S3 Object Ownership controls for the bucket. Default: true.
-#   object_ownership: ObjectWriter # (Optional) Object ownership mode. Valid values: ObjectWriter, BucketOwnerPreferred, BucketOwnerEnforced. Default: ObjectWriter.
+#   object_ownership: BucketOwnerEnforced # (Optional) Object ownership mode. Valid values: ObjectWriter, BucketOwnerPreferred, BucketOwnerEnforced. Default: BucketOwnerEnforced (ACLs disabled). Set ObjectWriter or BucketOwnerPreferred only when the bucket must accept ACL-based writes, such as legacy log delivery.
 #   force_destroy: false # (Optional) Deletes the bucket even when it contains objects. Default: false.
 #
 #   policies: # (Optional) Generated bucket policy toggles. Default: {}.
@@ -166,7 +179,7 @@ bucket_config: {} # (Optional) S3 bucket settings object. Default: {}. Uncomment
 #   versioning: false # (Optional) Enables bucket versioning when true. Default: false.
 #   versioning_config: # (Optional) Advanced versioning settings merged with versioning. Default: {}.
 #     mfa: arn:aws:iam::123456789012:mfa/admin 123456 # (Optional) MFA device ARN and current token for MFA delete operations. Default: null.
-#     status: Enabled # (Optional) Explicit versioning status. Valid values: Enabled, Suspended. Default: derived from versioning.
+#     status: Enabled # (Ignored) The upstream module always derives the versioning status from the versioning flag above. Use versioning: true/false instead.
 #     mfa_delete: Disabled # (Optional) MFA delete state. Valid values: Enabled, Disabled. Default: Disabled.
 #
 #   lifecycle_rule: # (Optional) Object lifecycle management rules. Default: [].
@@ -464,29 +477,29 @@ Available targets:
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.4 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.35 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | ~> 3.5 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.4 |
-| <a name="provider_random"></a> [random](#provider\_random) | ~> 3.5 |
+| ---- | ------- |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.64.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | 3.9.0 |
 
 ## Modules
 
 | Name | Source | Version |
-|------|--------|---------|
-| <a name="module_tags"></a> [tags](#module\_tags) | cloudopsworks/tags/local | 1.0.9 |
+| ---- | ------ | ------- |
+| <a name="module_tags"></a> [tags](#module\_tags) | cloudopsworks/tags/local | 1.0.10 |
 | <a name="module_this"></a> [this](#module\_this) | terraform-aws-modules/s3-bucket/aws | ~> 5.9 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [random_string.random](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string) | resource |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
@@ -494,28 +507,28 @@ Available targets:
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_bucket_config"></a> [bucket\_config](#input\_bucket\_config) | The configuration for the S3 bucket | `any` | `{}` | no |
-| <a name="input_extra_tags"></a> [extra\_tags](#input\_extra\_tags) | n/a | `map(string)` | `{}` | no |
-| <a name="input_is_hub"></a> [is\_hub](#input\_is\_hub) | Establish this is a HUB or spoke configuration | `bool` | `false` | no |
+| <a name="input_extra_tags"></a> [extra\_tags](#input\_extra\_tags) | Extra tags to add to the resources | `map(string)` | `{}` | no |
+| <a name="input_is_hub"></a> [is\_hub](#input\_is\_hub) | Is this a hub or spoke configuration? | `bool` | `false` | no |
 | <a name="input_name"></a> [name](#input\_name) | The name of the S3 bucket | `string` | `""` | no |
 | <a name="input_name_prefix"></a> [name\_prefix](#input\_name\_prefix) | Creates a unique bucket name beginning with the specified prefix. Conflicts with name | `string` | `""` | no |
-| <a name="input_org"></a> [org](#input\_org) | n/a | <pre>object({<br/>    organization_name = string<br/>    organization_unit = string<br/>    environment_type  = string<br/>    environment_name  = string<br/>  })</pre> | n/a | yes |
+| <a name="input_org"></a> [org](#input\_org) | Organization details | <pre>object({<br/>    organization_name = string<br/>    organization_unit = string<br/>    environment_type  = string<br/>    environment_name  = string<br/>  })</pre> | n/a | yes |
 | <a name="input_random_bucket_suffix"></a> [random\_bucket\_suffix](#input\_random\_bucket\_suffix) | Creates a unique bucket name with a random 8 character string appended to the end. Defaults to true, for clean names set to false | `bool` | `true` | no |
 | <a name="input_short_system_name"></a> [short\_system\_name](#input\_short\_system\_name) | Force the use of the short system name local variable, defaults to false. | `bool` | `false` | no |
-| <a name="input_spoke_def"></a> [spoke\_def](#input\_spoke\_def) | n/a | `string` | `"001"` | no |
+| <a name="input_spoke_def"></a> [spoke\_def](#input\_spoke\_def) | Spoke ID Number, must be a 3 digit number | `string` | `"001"` | no |
 
 ## Outputs
 
 | Name | Description |
-|------|-------------|
-| <a name="output_bucket_arn"></a> [bucket\_arn](#output\_bucket\_arn) | n/a |
-| <a name="output_bucket_hosted_zone_id"></a> [bucket\_hosted\_zone\_id](#output\_bucket\_hosted\_zone\_id) | n/a |
-| <a name="output_bucket_id"></a> [bucket\_id](#output\_bucket\_id) | n/a |
-| <a name="output_bucket_region"></a> [bucket\_region](#output\_bucket\_region) | n/a |
-| <a name="output_bucket_regional_domain_name"></a> [bucket\_regional\_domain\_name](#output\_bucket\_regional\_domain\_name) | n/a |
-| <a name="output_bucket_website_domain"></a> [bucket\_website\_domain](#output\_bucket\_website\_domain) | n/a |
-| <a name="output_bucket_website_endpoint"></a> [bucket\_website\_endpoint](#output\_bucket\_website\_endpoint) | n/a |
+| ---- | ----------- |
+| <a name="output_bucket_arn"></a> [bucket\_arn](#output\_bucket\_arn) | The ARN of the S3 bucket. |
+| <a name="output_bucket_hosted_zone_id"></a> [bucket\_hosted\_zone\_id](#output\_bucket\_hosted\_zone\_id) | The Route 53 hosted zone ID of the region where the S3 bucket resides. |
+| <a name="output_bucket_id"></a> [bucket\_id](#output\_bucket\_id) | The name (ID) of the S3 bucket, including the generated prefix and random suffix when enabled. |
+| <a name="output_bucket_region"></a> [bucket\_region](#output\_bucket\_region) | The AWS region where the S3 bucket resides. |
+| <a name="output_bucket_regional_domain_name"></a> [bucket\_regional\_domain\_name](#output\_bucket\_regional\_domain\_name) | The region-specific domain name of the S3 bucket, suitable for CloudFront and other regional endpoints. |
+| <a name="output_bucket_website_domain"></a> [bucket\_website\_domain](#output\_bucket\_website\_domain) | The domain of the website endpoint, populated only when static website hosting is configured. |
+| <a name="output_bucket_website_endpoint"></a> [bucket\_website\_endpoint](#output\_bucket\_website\_endpoint) | The website endpoint URL, populated only when static website hosting is configured. |
 
 
 

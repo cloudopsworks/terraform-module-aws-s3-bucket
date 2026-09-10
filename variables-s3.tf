@@ -38,9 +38,16 @@ variable "short_system_name" {
 ## configurations for the S3 bucket - YAML format
 #bucket_config: 
 #  acl: private | public-read | public-read-write | authenticated-read | log-delivery-write
-#  control_object_ownership: true | false
+#                                             # (optional) defaults to null (no ACL is managed).
+#                                             # Only valid when object_ownership is ObjectWriter or
+#                                             # BucketOwnerPreferred; BucketOwnerEnforced disables ACLs
+#                                             # and any acl value will be rejected by AWS.
+#  control_object_ownership: true | false     # (optional) defaults to true
 #  object_ownership: ObjectWriter | BucketOwnerPreferred | BucketOwnerEnforced
-#  force_destroy: true | false
+#                                             # (optional) defaults to BucketOwnerEnforced (ACLs disabled).
+#                                             # Set to ObjectWriter or BucketOwnerPreferred when the
+#                                             # bucket must accept ACL-based writes (e.g. legacy log delivery).
+#  force_destroy: true | false                # (optional) defaults to false
 #  policies:
 #    elb_logs: true | false                   # (optional) defaults to false
 #    lb_logs: true | false                    # (optional) defaults to false
@@ -87,7 +94,8 @@ variable "short_system_name" {
 #  versioning: true | false                   # (optional) defaults to false - enable/disable versioning
 #  versioning_config: # (optional) defaults to {}
 #    mfa: <MFA KEY + code>                    # (optional) MFA device ARN and token for MFA-delete
-#    status: Enabled | Suspended              # (optional) overrides versioning enable state when set
+#    status: Enabled | Suspended              # (ignored) the upstream module always derives the status
+#                                             # from `versioning` above; set `versioning` instead
 #    mfa_delete: Enabled | Disabled           # (optional) defaults to Disabled
 #  lifecycle_rule: # (optional) defaults to []
 #    - id: <rule ID> # (optional)
@@ -137,7 +145,7 @@ variable "short_system_name" {
 #          access_control_translation: # (optional)
 #            owner: BucketOwner # (optional) defaults to BucketOwner
 #          encryption_configuration: # (optional)
-#        replica_kms_key_id: <KMS Key ARN> # (optional) only if encryption is required
+#            replica_kms_key_id: <KMS Key ARN> # (optional) only if encryption is required
 #          replication_time: # (optional)
 #            status: true | false # (required) defaults to false
 #            minutes: <minutes> # (required)

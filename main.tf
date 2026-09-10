@@ -1,5 +1,5 @@
 ##
-# (c) 2021-2025
+# (c) 2021-2026
 #     Cloud Ops Works LLC - https://cloudops.works/
 #     Find us on:
 #       GitHub: https://github.com/cloudopsworks
@@ -33,9 +33,9 @@ module "this" {
   source                                     = "terraform-aws-modules/s3-bucket/aws"
   version                                    = "~> 5.9"
   bucket                                     = local.bucket_name
-  acl                                        = try(var.bucket_config.acl, "private")
+  acl                                        = try(var.bucket_config.acl, null)
   control_object_ownership                   = try(var.bucket_config.control_object_ownership, true)
-  object_ownership                           = try(var.bucket_config.object_ownership, "ObjectWriter")
+  object_ownership                           = try(var.bucket_config.object_ownership, "BucketOwnerEnforced")
   force_destroy                              = try(var.bucket_config.force_destroy, false)
   attach_elb_log_delivery_policy             = try(var.bucket_config.policies.elb_logs, false)
   attach_lb_log_delivery_policy              = try(var.bucket_config.policies.lb_logs, false)

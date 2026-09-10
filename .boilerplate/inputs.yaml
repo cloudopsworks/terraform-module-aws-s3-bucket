@@ -7,9 +7,9 @@ short_system_name: false # (Optional) Uses the short system name in generated bu
 bucket_config: {} # (Optional) S3 bucket settings object. Default: {}. Uncomment and tailor the reference block below as needed.
 
 # bucket_config:
-#   acl: private # (Optional) Canned ACL to apply to the bucket. Valid values: private, public-read, public-read-write, authenticated-read, log-delivery-write. Default: private.
+#   acl: private # (Optional) Canned ACL to apply to the bucket. Valid values: private, public-read, public-read-write, authenticated-read, log-delivery-write. Default: null (no ACL is managed). Requires object_ownership to be ObjectWriter or BucketOwnerPreferred - AWS rejects any ACL when ownership is BucketOwnerEnforced.
 #   control_object_ownership: true # (Optional) Manages S3 Object Ownership controls for the bucket. Default: true.
-#   object_ownership: ObjectWriter # (Optional) Object ownership mode. Valid values: ObjectWriter, BucketOwnerPreferred, BucketOwnerEnforced. Default: ObjectWriter.
+#   object_ownership: BucketOwnerEnforced # (Optional) Object ownership mode. Valid values: ObjectWriter, BucketOwnerPreferred, BucketOwnerEnforced. Default: BucketOwnerEnforced (ACLs disabled). Set ObjectWriter or BucketOwnerPreferred only when the bucket must accept ACL-based writes, such as legacy log delivery.
 #   force_destroy: false # (Optional) Deletes the bucket even when it contains objects. Default: false.
 #
 #   policies: # (Optional) Generated bucket policy toggles. Default: {}.
@@ -63,7 +63,7 @@ bucket_config: {} # (Optional) S3 bucket settings object. Default: {}. Uncomment
 #   versioning: false # (Optional) Enables bucket versioning when true. Default: false.
 #   versioning_config: # (Optional) Advanced versioning settings merged with versioning. Default: {}.
 #     mfa: arn:aws:iam::123456789012:mfa/admin 123456 # (Optional) MFA device ARN and current token for MFA delete operations. Default: null.
-#     status: Enabled # (Optional) Explicit versioning status. Valid values: Enabled, Suspended. Default: derived from versioning.
+#     status: Enabled # (Ignored) The upstream module always derives the versioning status from the versioning flag above. Use versioning: true/false instead.
 #     mfa_delete: Disabled # (Optional) MFA delete state. Valid values: Enabled, Disabled. Default: Disabled.
 #
 #   lifecycle_rule: # (Optional) Object lifecycle management rules. Default: [].

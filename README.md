@@ -69,18 +69,20 @@ This Terraform module provides a comprehensive solution for managing AWS S3 buck
 
 The module is designed to be used both standalone with Terraform and integrated with Terragrunt for enhanced configuration management.
 
-### Secure-by-default object ownership
+### Object ownership defaults
 
-Buckets default to `object_ownership = BucketOwnerEnforced`, which disables ACLs entirely and makes the bucket
-owner the owner of every object. Accordingly, `acl` now defaults to `null` and no ACL resource is managed unless
-you set one explicitly.
+Buckets default to `object_ownership = BucketOwnerPreferred` with a `private` `acl`. ACLs stay enabled, and the
+bucket owner takes ownership of objects uploaded by other accounts. This keeps ACL-based writers working — such as
+legacy ELB and S3 access-log delivery — without extra configuration.
 
-**Upgrading from an earlier release:** buckets previously created with the module defaults were provisioned with
-`ObjectWriter` ownership and a `private` ACL. Applying this version against that state flips the ownership controls
-to `BucketOwnerEnforced` and removes the managed ACL. Review the plan before applying, and pin
-`object_ownership: ObjectWriter` (or `BucketOwnerPreferred`) in `bucket_config` for any bucket that must keep
-accepting ACL-based writes, such as legacy ELB or S3 access-log delivery. Setting `acl` while ownership remains
-`BucketOwnerEnforced` is rejected by AWS with `AccessControlListNotSupported`.
+Set `object_ownership: BucketOwnerEnforced` in `bucket_config` to disable ACLs entirely and make the bucket owner
+the owner of every object. When you do, leave `acl` unset: AWS rejects any ACL value under `BucketOwnerEnforced`
+with `AccessControlListNotSupported`.
+
+**Upgrading from `v1.3.0`:** that release defaulted to `BucketOwnerEnforced` with no managed ACL. This version
+rolls that default back, so applying it against a `v1.3.0` bucket re-enables ACLs and applies the `private` ACL.
+Pin `object_ownership: BucketOwnerEnforced` in `bucket_config` for any bucket that must keep ACLs disabled, and
+review the plan before applying.
 
 ## Usage
 
@@ -123,9 +125,9 @@ short_system_name: false # (Optional) Uses the short system name in generated bu
 bucket_config: {} # (Optional) S3 bucket settings object. Default: {}. Uncomment and tailor the reference block below as needed.
 
 # bucket_config:
-#   acl: private # (Optional) Canned ACL to apply to the bucket. Valid values: private, public-read, public-read-write, authenticated-read, log-delivery-write. Default: null (no ACL is managed). Requires object_ownership to be ObjectWriter or BucketOwnerPreferred - AWS rejects any ACL when ownership is BucketOwnerEnforced.
+#   acl: private # (Optional) Canned ACL to apply to the bucket. Valid values: private, public-read, public-read-write, authenticated-read, log-delivery-write. Default: private. Requires object_ownership to be ObjectWriter or BucketOwnerPreferred - AWS rejects any ACL when ownership is BucketOwnerEnforced.
 #   control_object_ownership: true # (Optional) Manages S3 Object Ownership controls for the bucket. Default: true.
-#   object_ownership: BucketOwnerEnforced # (Optional) Object ownership mode. Valid values: ObjectWriter, BucketOwnerPreferred, BucketOwnerEnforced. Default: BucketOwnerEnforced (ACLs disabled). Set ObjectWriter or BucketOwnerPreferred only when the bucket must accept ACL-based writes, such as legacy log delivery.
+#   object_ownership: BucketOwnerPreferred # (Optional) Object ownership mode. Valid values: ObjectWriter, BucketOwnerPreferred, BucketOwnerEnforced. Default: BucketOwnerPreferred (ACLs remain enabled, bucket owner owns newly uploaded objects). Set BucketOwnerEnforced to disable ACLs entirely - acl must then be left unset.
 #   force_destroy: false # (Optional) Deletes the bucket even when it contains objects. Default: false.
 #
 #   policies: # (Optional) Generated bucket policy toggles. Default: {}.
@@ -486,8 +488,8 @@ Available targets:
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.64.0 |
-| <a name="provider_random"></a> [random](#provider\_random) | 3.9.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.35 |
+| <a name="provider_random"></a> [random](#provider\_random) | ~> 3.5 |
 
 ## Modules
 

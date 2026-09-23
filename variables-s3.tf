@@ -38,15 +38,16 @@ variable "short_system_name" {
 ## configurations for the S3 bucket - YAML format
 #bucket_config: 
 #  acl: private | public-read | public-read-write | authenticated-read | log-delivery-write
-#                                             # (optional) defaults to null (no ACL is managed).
+#                                             # (optional) defaults to private.
 #                                             # Only valid when object_ownership is ObjectWriter or
 #                                             # BucketOwnerPreferred; BucketOwnerEnforced disables ACLs
 #                                             # and any acl value will be rejected by AWS.
 #  control_object_ownership: true | false     # (optional) defaults to true
 #  object_ownership: ObjectWriter | BucketOwnerPreferred | BucketOwnerEnforced
-#                                             # (optional) defaults to BucketOwnerEnforced (ACLs disabled).
-#                                             # Set to ObjectWriter or BucketOwnerPreferred when the
-#                                             # bucket must accept ACL-based writes (e.g. legacy log delivery).
+#                                             # (optional) defaults to BucketOwnerPreferred (ACLs remain
+#                                             # enabled and the bucket owner owns newly uploaded objects).
+#                                             # Set BucketOwnerEnforced to disable ACLs entirely; acl must
+#                                             # then be left unset or AWS rejects the request.
 #  force_destroy: true | false                # (optional) defaults to false
 #  policies:
 #    elb_logs: true | false                   # (optional) defaults to false

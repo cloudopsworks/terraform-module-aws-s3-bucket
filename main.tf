@@ -33,9 +33,9 @@ module "this" {
   source                                     = "terraform-aws-modules/s3-bucket/aws"
   version                                    = "~> 5.9"
   bucket                                     = local.bucket_name
-  acl                                        = try(var.bucket_config.acl, null)
+  acl                                        = try(var.bucket_config.acl, "private")
   control_object_ownership                   = try(var.bucket_config.control_object_ownership, true)
-  object_ownership                           = try(var.bucket_config.object_ownership, "BucketOwnerEnforced")
+  object_ownership                           = try(var.bucket_config.object_ownership, "BucketOwnerPreferred")
   force_destroy                              = try(var.bucket_config.force_destroy, false)
   attach_elb_log_delivery_policy             = try(var.bucket_config.policies.elb_logs, false)
   attach_lb_log_delivery_policy              = try(var.bucket_config.policies.lb_logs, false)
